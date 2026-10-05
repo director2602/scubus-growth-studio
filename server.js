@@ -163,38 +163,115 @@ function parseJson(text) {
   if (a >= 0 && z > a) { try { return JSON.parse(t.slice(a, z + 1)); } catch (e) {} }
   return undefined;
 }
-async function gemini(prompt, maxTokens) {
+/* ---------- AI: Claude (paid) or Gemini (free), with live web search ---------- */
+function aiError(msg, code) { const e = new Error(msg); e.code = code; return e; }
+// messages: [{role:"user"|"assistant", content}]; opts: {json, search, maxTokens}
+async function geminiCall(messages, opts) {
+  const body = {
+    contents: messages.map(m => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] })),
+    generationConfig: { temperature: 1, maxOutputTokens: opts.maxTokens || 8000 },
+  };
+  if (opts.search) body.tools = [{ google_search: {} }];
+  else if (opts.json) body.generationConfig.responseMimeType = "application/json";
   const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(cfg.geminiModel)}:generateContent`, {
-    method: "POST", headers: { "content-type": "application/json", "x-goog-api-key": cfg.geminiKey },
-    body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt + "\n\nYour whole reply must be the JSON value only, with no other text." }] }], generationConfig: { temperature: 1, maxOutputTokens: maxTokens || 8000, responseMimeType: "application/json" } }),
+    method: "POST", headers: { "content-type": "application/json", "x-goog-api-key": cfg.geminiKey }, body: JSON.stringify(body),
   });
   const j = await r.json().catch(() => ({}));
-  if (!r.ok) { const e = new Error((j.error && j.error.message) || "AI error " + r.status); e.code = r.status === 429 ? "rate_limited" : (r.status === 400 || r.status === 403) && /key/i.test(JSON.stringify(j)) ? "bad_key" : "upstream_error"; throw e; }
-  const text = (((j.candidates || [])[0] || {}).content || { parts: [] }).parts.map(p => p.text || "").join("");
-  const data = parseJson(text);
-  if (data === undefined) { const e = new Error("AI reply was not JSON"); e.code = "invalid_json"; throw e; }
-  return data;
+  if (!r.ok) {
+    const msg = (j.error && j.error.message) || "Gemini returned " + r.status;
+    // Some keys/models don't allow search: retry once without it
+    if (opts.search && (r.status === 400 || r.status === 403) && !/API key/i.test(msg)) return geminiCall(messages, Object.assign({}, opts, { search: false }));
+    throw aiError(msg, r.status === 429 ? "rate_limited" : /API key|API_KEY/i.test(msg) ? "bad_key" : /not found|is not supported/i.test(msg) ? "bad_model" : "upstream_error");
+  }
+  const cand = (j.candidates || [])[0] || {};
+  const text = ((cand.content || {}).parts || []).map(p => p.text || "").join("");
+  const sources = (((cand.groundingMetadata || {}).groundingChunks) || []).map(c => c.web).filter(Boolean).map(w => ({ title: w.title || w.uri, url: w.uri })).slice(0, 8);
+  if (!text) throw aiError("Gemini returned an empty answer" + (cand.finishReason ? " (" + cand.finishReason + ")" : ""), "empty");
+  return { text, sources };
 }
-async function claude(prompt, maxTokens) {
-  if (!cfg.anthropicKey && cfg.geminiKey) return gemini(prompt, maxTokens);
-  if (!cfg.anthropicKey) { const e = new Error("AI not configured"); e.code = "not_configured"; throw e; }
+async function claudeCall(messages, opts) {
+  const body = { model: cfg.model, max_tokens: opts.maxTokens || 8000, messages };
+  if (opts.search) body.tools = [{ type: "web_search_20250305", name: "web_search", max_uses: 4 }];
   const r = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: { "x-api-key": cfg.anthropicKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-    body: JSON.stringify({ model: cfg.model, max_tokens: maxTokens || 6000, temperature: 1, messages: [{ role: "user", content: prompt + "\n\nYour whole reply must be the JSON value only, with no other text." }] }),
+    method: "POST", headers: { "x-api-key": cfg.anthropicKey, "anthropic-version": "2023-06-01", "content-type": "application/json" }, body: JSON.stringify(body),
   });
   const j = await r.json().catch(() => ({}));
-  if (!r.ok) { const e = new Error((j.error && j.error.message) || "AI error " + r.status); e.code = r.status === 429 ? "rate_limited" : r.status === 401 ? "bad_key" : "upstream_error"; throw e; }
-  const text = (j.content || []).filter(b => b.type === "text").map(b => b.text).join("");
-  const data = parseJson(text);
-  if (data === undefined) { const e = new Error("AI reply was not JSON"); e.code = "invalid_json"; throw e; }
-  return data;
+  if (!r.ok) {
+    const msg = (j.error && j.error.message) || "Claude returned " + r.status;
+    if (opts.search && r.status === 400 && /tool|web_search/i.test(msg)) return claudeCall(messages, Object.assign({}, opts, { search: false }));
+    throw aiError(msg, r.status === 429 ? "rate_limited" : r.status === 401 ? "bad_key" : r.status === 404 ? "bad_model" : "upstream_error");
+  }
+  const blocks = j.content || [];
+  const text = blocks.filter(b => b.type === "text").map(b => b.text).join("");
+  const sources = [];
+  blocks.forEach(b => (b.citations || []).forEach(c => { if (c.url && !sources.find(s => s.url === c.url)) sources.push({ title: c.title || c.url, url: c.url }); }));
+  return { text, sources: sources.slice(0, 8) };
+}
+async function aiRaw(messages, opts) {
+  opts = opts || {};
+  if (cfg.anthropicKey) return claudeCall(messages, opts);
+  if (cfg.geminiKey) return geminiCall(messages, opts);
+  throw aiError("No AI key is set. Add GEMINI_API_KEY (free) or ANTHROPIC_API_KEY in Render.", "not_configured");
+}
+async function aiJson(prompt, opts) {
+  const tail = "\n\nYour whole final reply must be the JSON value only, with no other text before or after it.";
+  const out = await aiRaw([{ role: "user", content: prompt + tail }], Object.assign({ json: true }, opts || {}));
+  const data = parseJson(out.text);
+  if (data === undefined) { console.error("AI non-JSON reply:", out.text.slice(0, 300)); throw aiError("The AI's answer wasn't in the expected format. Try again.", "invalid_json"); }
+  return { data, sources: out.sources };
+}
+// kept for the Autopilot code below
+async function claude(prompt, maxTokens) { return (await aiJson(prompt, { maxTokens, search: true })).data; }
+
+function sendAiError(res, e) {
+  console.error("AI error:", e.code || "", e.message);
+  res.status(e.code === "not_configured" ? 409 : 502).json({ error: e.code || "upstream_error", message: e.message });
 }
 app.post("/api/ai", async (req, res) => {
   const prompt = String((req.body && req.body.prompt) || "").slice(0, 60000);
   if (!prompt) return res.status(400).json({ error: "empty_prompt" });
-  try { res.json({ data: await claude(prompt) }); }
-  catch (e) { res.status(e.code === "not_configured" ? 409 : 502).json({ error: e.code || "upstream_error", message: e.message }); }
+  const search = !!(req.body && req.body.search);
+  const pre = search ? "Before answering, use web search to check what is current this week (today is " + today() + ", India): trending topics, news and exam dates that matter to Indian students and parents, and trending Instagram Reel formats in Indian education. Use what you find; never invent facts.\n\n" : "";
+  try { const out = await aiJson(pre + prompt, { search }); res.json({ data: out.data, sources: out.sources }); }
+  catch (e) { sendAiError(res, e); }
+});
+app.get("/api/ai-check", async (req, res) => {
+  try { const out = await aiRaw([{ role: "user", content: 'Reply with exactly: {"ok":true}' }], { json: true, maxTokens: 50 }); res.json({ ok: true, provider: cfg.anthropicKey ? "Claude" : "Gemini", sample: out.text.slice(0, 40) }); }
+  catch (e) { console.error("AI check failed:", e.message); res.json({ ok: false, error: e.code || "upstream_error", message: e.message, provider: cfg.anthropicKey ? "Claude" : cfg.geminiKey ? "Gemini" : null }); }
+});
+
+/* ---------- Marketing agent chat ---------- */
+const AGENT_BRIEF = "You are the in-house Instagram marketing agent for S-CUBUS Dwarka, working for the director. You think like a senior social media strategist and you do the work, not just advise.\n" +
+  "How you work on every request:\n" +
+  "1. Work out the real goal (followers, SATHII registrations, admissions, trust with parents) and the audience.\n" +
+  "2. Look at the live data below: S-CUBUS's own numbers, the three competitors, their best recent posts and the follower history.\n" +
+  "3. Use web search for anything current: this week's news and trends for Indian students and parents, upcoming exam and result dates (CBSE, JEE, NEET), festivals, and trending Reel formats. Cite what you used.\n" +
+  "4. Decide, then deliver finished work: exact hooks, scripts with shots, captions, hashtags, posting times, a plan with dates. Explain the reasoning in one or two lines, tied to the data or trend.\n" +
+  "Rules: write like a person, with real human emotion and specific moments; Hinglish when it fits; no emoji; no clichés like 'dream big' or 'hard work pays off'. Never invent results, ranks, fees, dates or student names: write [PLACEHOLDER]. Never repeat ideas listed under 'Already used'. Keep answers well structured with short headings and bullet points. If data is missing, say what's missing and still give your best recommendation.";
+async function agentContext() {
+  const parts = ["Today: " + today() + " (India)."];
+  try {
+    if (cfg.igToken && cfg.igUserId) {
+      const comp = await refreshCompetitors(false); const snaps = await getSnapshots();
+      parts.push("LIVE INSTAGRAM DATA (fetched " + comp.fetchedAt + "):\n" + summarise(comp, snaps));
+      try { const own = await loadOwn(false); parts.push(`S-CUBUS insights: ${own.followers} followers; new followers last 30 days ${(own.series || []).reduce((s, r) => s + (r.gain || 0), 0)}; reach last 30 days ${(own.series || []).reduce((s, r) => s + (r.reach || 0), 0)}.`); } catch (e) {}
+    } else parts.push("Live Instagram data is not connected yet. Public estimates (HypeAuditor, Aug–Oct 2026): Physics Wallah 3.9M followers, 7.48% engagement, -1.05% 30-day growth; Allen 372K, 1.77%, flat; Aakash 278K, 0.65%, flat. S-CUBUS numbers unknown.");
+  } catch (e) { parts.push("Live data failed to load: " + e.message); }
+  try { const reps = (await store.list("reports", 5)).sort((a, b) => a.week < b.week ? 1 : -1); if (reps[0]) parts.push("Latest weekly brief (" + reps[0].week + "): " + (reps[0].headline || "") + " — " + (reps[0].summary || "")); } catch (e) {}
+  try { const ideas = await getIdeas(60); if (ideas.length) parts.push("Already used (do not repeat):\n" + ideas.map(i => "- " + i.title).join("\n")); } catch (e) {}
+  return parts.join("\n\n");
+}
+app.post("/api/agent", async (req, res) => {
+  const msgs = (Array.isArray(req.body && req.body.messages) ? req.body.messages : []).slice(-12)
+    .map(m => ({ role: m.role === "assistant" ? "assistant" : "user", content: String(m.content || "").slice(0, 8000) })).filter(m => m.content);
+  if (!msgs.length || msgs[msgs.length - 1].role !== "user") return res.status(400).json({ error: "empty_prompt" });
+  try {
+    const ctx = await agentContext();
+    const first = { role: "user", content: CONTEXT + "\n\n" + AGENT_BRIEF + "\n\n" + ctx + "\n\n---\nDirector's request:\n" + msgs[0].content };
+    const convo = [first].concat(msgs.slice(1));
+    const out = await aiRaw(convo, { search: true, maxTokens: 8000 });
+    res.json({ text: out.text, sources: out.sources });
+  } catch (e) { sendAiError(res, e); }
 });
 
 /* ---------- Autopilot: daily data refresh + Monday brief ---------- */

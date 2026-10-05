@@ -163,6 +163,29 @@ textarea{resize:vertical;min-height:84px}
 .log{display:flex;flex-direction:column}
 .log div{display:grid;grid-template-columns:150px 170px minmax(0,1fr);gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:13.5px}
 @media (max-width:640px){.log div{grid-template-columns:1fr}}
+.agent{padding:22px;display:flex;flex-direction:column;gap:14px}
+.agent-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.agent-head h3{max-width:44ch;line-height:1.2}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips button{border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;min-height:38px;text-align:left}
+.chips button:hover{border-color:var(--rose-2)}
+.chat{display:flex;flex-direction:column;gap:12px;max-height:620px;overflow-y:auto}
+.chat:empty{display:none}
+.msg{border-radius:14px;padding:14px 16px;font-size:14.5px;line-height:1.6;max-width:min(100%,820px);min-width:0;overflow-wrap:anywhere}
+.msg.me{align-self:flex-end;background:var(--brand);color:var(--on-brand)}
+.msg.bot{align-self:flex-start;background:var(--sunk)}
+.msg.bot h4{font-family:var(--display);font-size:19px;margin:12px 0 4px}
+.msg.bot h4:first-child{margin-top:0}
+.msg.bot ul,.msg.bot ol{margin:4px 0;padding-left:20px}
+.msg.bot p{margin:6px 0}
+.msg .src{display:block;margin-top:10px;font-size:12px;color:var(--muted)}
+.msg .src a{color:var(--accent)}
+.msg .tools{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.msg .tools button{font-size:12.5px;padding:6px 12px;min-height:34px}
+.thinking{color:var(--muted);font-style:italic}
+.agent-form{display:flex;gap:10px;align-items:flex-end}
+.agent-form textarea{flex:1;min-height:52px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 </style>
 </head>
 <body>
@@ -206,6 +229,19 @@ textarea{resize:vertical;min-height:84px}
         <button class="btn btn-line" id="runDaily" type="button">Refresh numbers now</button>
         <button class="btn btn-primary" id="runWeekly" type="button">Write this week's brief now</button>
       </div>
+    </div>
+    <div class="card agent">
+      <div class="agent-head">
+        <div><div class="eyebrow">Your marketing agent</div><h3 style="font-size:26px">Ask it anything. It checks your live numbers and this week's trends first.</h3></div>
+        <button class="btn btn-line" id="agentClear" type="button">New chat</button>
+      </div>
+      <div class="chips" id="agentChips"></div>
+      <div class="chat" id="agentChat" aria-live="polite"></div>
+      <form class="agent-form" id="agentForm">
+        <label for="agentInput" class="sr">Message your marketing agent</label>
+        <textarea id="agentInput" rows="2" placeholder="e.g. What should we post tomorrow to push SATHII registrations?"></textarea>
+        <button class="btn btn-primary" type="submit" id="agentSend">Send</button>
+      </form>
     </div>
     <div class="ap-grid" id="apCards"></div>
     <div id="apStatus" class="note"></div>
@@ -413,7 +449,7 @@ async function loadOwn(force){
   renderGrowth();
 }
 async function loadSnapshots(){ try{ const d=await api("/api/snapshots"); S.snapshots=Array.isArray(d)?d:[]; }catch(e){} renderPulse(); renderGrowth(); }
-S.sample={ json: async(prompt)=>{ try{ const r=await api("/api/ai",{method:"POST",body:JSON.stringify({prompt})}); return r.data; }catch(e){ throw {code:e.error||e.code||"upstream_error"}; } } };
+S.sample={ json: async(prompt,opts)=>{ try{ const r=await api("/api/ai",{method:"POST",body:JSON.stringify({prompt,search:!!(opts&&opts.search)})}); S.lastSources=r.sources||[]; return r.data; }catch(e){ throw {code:e.error||e.code||"upstream_error",message:e.message||""}; } } };
 
 function snapChange(u){
   const cutoff=new Date(Date.now()-31*864e5); const c=cutoff.toISOString().slice(0,10);
@@ -470,7 +506,8 @@ function dataSummary(){
     .map(p=>"- @"+p.username+" ["+p.post_type+", "+fmt(toNum(p.post_likes))+" likes] "+String(p.post_caption||"").replace(/\s+/g," ").slice(0,220)).join("\n"); }
   return "ACCOUNTS (last 30 days):\n"+lines.join("\n")+(top?"\n\nTOP COMPETITOR POSTS:\n"+top:"\n\n(No post-level data yet. Known patterns: Physics Wallah leads with teachers on camera and motivation; Allen pushes TALLENTEX scholarship test, toppers; Aakash runs brand campaigns and the ANTHE talent exam.)");
 }
-function sampleCopy(e){
+function sampleCopy(e){ const base=sampleCopyBase(e); return (base&&e&&e.message&&!["cancelled","auth"].includes(e.code))?base+" Details: "+e.message:base; }
+function sampleCopyBase(e){
   switch(e&&e.code){ case "cancelled": case "auth": return ""; case "not_configured": return "AI isn't set up yet. Add ANTHROPIC_API_KEY in the app's Render settings."; case "bad_key": return "The AI key was rejected. Check ANTHROPIC_API_KEY in Render."; case "not_granted": case "sampling_disabled": case "not_declared": case "capability_disabled": case "capability_removed": return "AI writing isn't available in this view.";
     case "rate_limited": return "Too many requests right now. Try again in a minute."; case "refused": return "Claude couldn't help with that request. Try rewording it.";
     case "invalid_json": case "empty_completion": return "The answer came back incomplete. Press the button to try again."; case "session_expired": return "Sign in to Claude again, then retry.";
@@ -529,14 +566,14 @@ function renderHistoryNote(){ const n=S.history.length; $("rlHistory").textConte
 const norm=(t)=>String(t||"").toLowerCase().replace(/[^a-z0-9ऀ-ॿ ]/g," ").replace(/\s+/g," ").trim();
 function tooSimilar(a,b){ const A=new Set(norm(a).split(" ").filter(w=>w.length>3)), B=new Set(norm(b).split(" ").filter(w=>w.length>3)); if(!A.size||!B.size) return false; let k=0; A.forEach(w=>{ if(B.has(w)) k++; }); return k/Math.min(A.size,B.size)>=0.6; }
 async function genIdeas(){
-  if(!S.sample) return; const b=$("rlGo"); const st=$("rlStatus"); b.disabled=true; b.textContent="Thinking…"; st.textContent="Picking new topics and writing the stories. This takes 30–90 seconds.";
+  if(!S.sample) return; const b=$("rlGo"); const st=$("rlStatus"); b.disabled=true; b.textContent="Thinking…"; st.textContent="Checking this week's trends on the web, picking new topics and writing the stories. This takes 30–90 seconds.";
   const usedThemes=new Set(S.history.slice(-120).map(h=>h.theme)); const usedFormats=new Set(S.history.slice(-8).map(h=>h.format));
   const themes=pickFresh(THEMES,usedThemes,4); const formats=pickFresh(STORY_FORMATS,usedFormats,4);
   const emotionChoice=$("rlEmotion").value; const avoid=S.history.slice(-60).concat(EXAMPLE_IDEAS).map(h=>"- "+h.title+(h.hook?" | hook: "+h.hook:"")).join("\n");
   const briefs=themes.map((t,i)=>(i+1)+". Theme: "+t+" | Storytelling format: "+formats[i]).join("\n");
   const prompt=CONTEXT+"\n\nYou are a filmmaker who writes short, true-feeling Instagram Reels for an Indian coaching institute. Write 4 reels for @s_cubus_dwarka, one per brief below. Each must be about a DIFFERENT human moment and make the viewer feel something real.\n\nAudience: "+$("rlAudience").value+"\nGoal: "+$("rlGoal").value+"\nFeeling: "+(emotionChoice==="Surprise me"?"choose a different emotion for each reel (pride, fear turning into courage, nostalgia, gentle humour, gratitude, hope, belonging, quiet determination)":emotionChoice+", expressed differently in each reel")+"\nLanguage for hooks, voiceover and on-screen text: "+$("rlLang").value+"\nExtra request: "+($("rlExtra").value||"none")+"\nVariation key: "+Math.random().toString(36).slice(2,8)+"\n\nBRIEFS:\n"+briefs+"\n\nHow to write them:\n- Start from one specific, sensory moment (a sound, an object, a time of day, a line someone actually says at home). Show it; don't explain the lesson.\n- Each reel has a small emotional turn: tension, then release.\n- Real Delhi and Dwarka texture is welcome (metro, chai, winter mornings, family WhatsApp groups). No stereotypes and no mocking anyone.\n- The institute appears lightly, usually at the end. No hard selling, no fake results, no invented student names or ranks: use [PLACEHOLDER].\n- Filmable on a phone in under 30 minutes with students, parents or teachers who agree to appear. 15–45 seconds.\n- Never use these phrases: "+BANNED.join(", ")+". No emoji.\n- Do NOT repeat or closely resemble any of these earlier ideas, titles or hooks:\n"+avoid+"\n\nUse this data only to decide what will travel well, not to copy anyone:\n"+dataSummary()+'\n\nReply with only a JSON array of 4 objects in brief order: {"title":"","topic":"2-4 word topic","emotion":"one word or short phrase","moment":"the specific human moment in one sentence","format":"storytelling format and length","hook":"exact first line spoken or shown","shots":["4-6 shots, concrete"],"onscreen":"on-screen text","caption":"caption in the same voice, 2-4 sentences","hashtags":["5-8 tags"],"why":"why this will make people stop, feel and share","inspired":"the audience insight behind it"}';
   try{
-    const out=await S.sample.json(prompt,{cache:false});
+    const out=await S.sample.json(prompt,{search:true});
     if(Array.isArray(out)&&out.length){
       const past=S.history.concat(EXAMPLE_IDEAS);
       const fresh=out.filter(it=>it&&it.title&&!past.some(h=>tooSimilar(h.title,it.title)||(h.hook&&tooSimilar(h.hook,it.hook))));
@@ -726,7 +763,7 @@ async function loadAutopilot(){
     const card=(t,ok,v,n)=>'<div class="card ap-card"><div class="eyebrow">'+esc(t)+'</div><span class="state '+(ok?"ok":"off")+'"><span class="dot"></span>'+esc(v)+'</span><div class="note">'+esc(n)+'</div></div>';
     $("apCards").innerHTML=
       card("Instagram",st.instagram,st.instagram?"Connected":"Not connected",st.instagram?"Live numbers for 4 accounts":"Add the Instagram keys in Render")+
-      card("AI writer",st.ai,st.ai?"Connected":"Not connected",st.ai?"Writes briefs, ideas and copy":"Add ANTHROPIC_API_KEY in Render")+
+      card("AI agent",!!(S.aiCheck&&S.aiCheck.ok),S.aiCheck?(S.aiCheck.ok?"Working ("+S.aiCheck.provider+")":(st.ai?"Key error":"Not connected")):(st.ai?"Checking…":"Not connected"),S.aiCheck&&!S.aiCheck.ok&&st.ai?String(S.aiCheck.message||"").slice(0,140):(st.ai?"Writes briefs, ideas and copy, with web search":"Add GEMINI_API_KEY (free) in Render"))+
       card("Daily refresh",!!d.state.lastDaily,d.state.lastDaily?"Last: "+d.state.lastDaily:"Waiting","Runs every day at 9 AM")+
       card("Weekly brief",!!d.state.lastWeekly,d.state.lastWeekly?"Last: "+d.state.lastWeekly:"Waiting","Runs every Monday at 8 AM");
     renderReport(d.report,d.reports);
@@ -736,11 +773,68 @@ async function loadAutopilot(){
 async function runJob(job,btn,label){
   btn.disabled=true; const old=btn.textContent; btn.textContent=label; $("apStatus").textContent=job==="weekly"?"Writing the brief from the latest numbers. This takes about a minute.":"Fetching fresh numbers…";
   try{ await api("/api/autopilot/run",{method:"POST",body:JSON.stringify({job})}); $("apStatus").textContent=job==="weekly"?"This week's brief is ready.":"Numbers refreshed."; if(job==="daily"){ loadCompetitors(); loadOwn(); } await loadAutopilot(); watchHistory(); }
-  catch(e){ $("apStatus").textContent=e.error==="not_configured"?(job==="weekly"?"Add ANTHROPIC_API_KEY in Render first.":"Add the Instagram keys in Render first."):"That didn't work: "+(e.message||e.error||"unknown error"); loadAutopilot(); }
+  catch(e){ $("apStatus").textContent=e.error==="not_configured"?(job==="weekly"?"Add GEMINI_API_KEY (free) in Render first.":"Add the Instagram keys in Render first."):"That didn't work: "+(e.message||e.error||"unknown error"); loadAutopilot(); }
   btn.disabled=false; btn.textContent=old;
 }
 $("runDaily").addEventListener("click",()=>runJob("daily",$("runDaily"),"Refreshing…"));
 $("runWeekly").addEventListener("click",()=>runJob("weekly",$("runWeekly"),"Writing…"));
+
+
+/* ---------- marketing agent ---------- */
+const AGENT_CHIPS=["What should we post tomorrow, and why?","Write 3 reels for SATHII registrations using this week's trends","What are Physics Wallah, Allen and Aakash doing right now that we should learn from?","Plan our next 7 days of posts with dates and times","Write a caption and hook for a topper-result post","Find a trending topic this week we can make a reel about"];
+S.chat=[];
+try{ const saved=JSON.parse(localStorage.getItem("gs-chat")||"[]"); if(Array.isArray(saved)) S.chat=saved.slice(-20); }catch(e){}
+function mdToHtml(t){
+  const lines=esc(t).split("\n"); let out="", list=null;
+  const inline=(x)=>x.replace(/\*\*(.+?)\*\*/g,"<b>$1</b>").replace(/(^|[^*])\*(?!\s)(.+?)\*(?!\*)/g,"$1<i>$2</i>");
+  const close=()=>{ if(list){ out+="</"+list+">"; list=null; } };
+  for(const raw of lines){ const l=raw.trimEnd();
+    let m;
+    if((m=l.match(/^#{1,4}\s+(.*)/))){ close(); out+="<h4>"+inline(m[1])+"</h4>"; }
+    else if((m=l.match(/^\s*[-*•]\s+(.*)/))){ if(list!=="ul"){ close(); out+="<ul>"; list="ul"; } out+="<li>"+inline(m[1])+"</li>"; }
+    else if((m=l.match(/^\s*\d+[.)]\s+(.*)/))){ if(list!=="ol"){ close(); out+="<ol>"; list="ol"; } out+="<li>"+inline(m[1])+"</li>"; }
+    else if(!l.trim()){ close(); }
+    else { close(); out+="<p>"+inline(l)+"</p>"; } }
+  close(); return out;
+}
+function renderChat(){
+  $("agentChips").hidden=S.chat.length>0;
+  $("agentChips").innerHTML=AGENT_CHIPS.map(c=>'<button type="button">'+esc(c)+'</button>').join("");
+  $("agentChat").innerHTML=S.chat.map((m,i)=>m.role==="user"?'<div class="msg me">'+esc(m.content)+'</div>':
+    '<div class="msg bot">'+(m.pending?'<span class="thinking">'+esc(m.content)+'</span>':mdToHtml(m.content))+
+    ((m.sources||[]).length?'<span class="src">Sources: '+m.sources.map(s=>'<a href="'+esc(s.url)+'" target="_blank" rel="noopener">'+esc(String(s.title).slice(0,60))+'</a>').join(" · ")+'</span>':'')+
+    (!m.pending&&!m.error?'<div class="tools"><button class="btn btn-line" type="button" data-copy="'+i+'">Copy</button><button class="btn btn-line" type="button" data-post="'+i+'">Turn into a post</button></div>':'')+'</div>').join("");
+  const c=$("agentChat"); c.scrollTop=c.scrollHeight;
+  try{ localStorage.setItem("gs-chat",JSON.stringify(S.chat.filter(m=>!m.pending).slice(-20))); }catch(e){}
+}
+async function askAgent(text){
+  text=String(text||"").trim(); if(!text||S.agentBusy) return;
+  S.agentBusy=true; $("agentSend").disabled=true; $("agentInput").value="";
+  S.chat.push({role:"user",content:text});
+  const steps=["Reading your live Instagram numbers…","Checking what competitors posted…","Searching this week's trends and dates…","Thinking it through and writing…"];
+  const pending={role:"assistant",content:steps[0],pending:true}; S.chat.push(pending); renderChat();
+  let k=0; const timer=setInterval(()=>{ k=Math.min(k+1,steps.length-1); pending.content=steps[k]; renderChat(); },6000);
+  try{
+    const r=await api("/api/agent",{method:"POST",body:JSON.stringify({messages:S.chat.filter(m=>!m.pending&&!m.error).map(m=>({role:m.role,content:m.content}))})});
+    pending.pending=false; pending.content=r.text||"(no answer)"; pending.sources=r.sources||[];
+  }catch(e){
+    pending.pending=false; pending.error=true;
+    pending.content=e.error==="not_configured"?"No AI key is set yet. Add GEMINI_API_KEY in Render (it's free).":"I couldn't finish that. "+(e.error==="rate_limited"?"The free AI limit was hit; try again in a minute.":"Details: "+(e.message||e.error||"unknown error"));
+  }
+  clearInterval(timer); S.agentBusy=false; $("agentSend").disabled=false; renderChat();
+}
+$("agentForm").addEventListener("submit",ev=>{ ev.preventDefault(); askAgent($("agentInput").value); });
+$("agentInput").addEventListener("keydown",ev=>{ if(ev.key==="Enter"&&!ev.shiftKey){ ev.preventDefault(); askAgent($("agentInput").value); } });
+$("agentChips").addEventListener("click",ev=>{ const b=ev.target.closest("button"); if(b) askAgent(b.textContent); });
+$("agentClear").addEventListener("click",()=>{ S.chat=[]; renderChat(); });
+$("agentChat").addEventListener("click",ev=>{ const b=ev.target.closest("button"); if(!b) return; const m=S.chat[+(b.dataset.copy??b.dataset.post)]; if(!m) return;
+  if(b.dataset.copy!=null) copyText(m.content);
+  if(b.dataset.post!=null){ $("psBrief").value=m.content.slice(0,1500); showTab("studio"); $("psBrief").focus(); toast("Brief added. Press “Write it with AI”."); } });
+renderChat();
+async function checkAI(){
+  try{ const r=await api("/api/ai-check"); S.aiCheck=r; }catch(e){ S.aiCheck={ok:false,message:e.message||e.error}; }
+  loadAutopilot();
+}
 
 /* ---------- login + boot ---------- */
 function showLogin(){ $("login").hidden=false; setTimeout(()=>{ try{$("pw").focus();}catch(e){} },50); }
@@ -751,7 +845,7 @@ $("loginForm").addEventListener("submit",async(ev)=>{ ev.preventDefault(); $("lo
 let started=false;
 async function start(){
   try{ S.status=await api("/api/status"); }catch(e){ return; }
-  renderPulse(); renderGrowth(); loadAutopilot(); watchHistory(); loadSnapshots();
+  renderPulse(); renderGrowth(); loadAutopilot(); watchHistory(); loadSnapshots(); if(S.status.ai) checkAI();
   if(S.status.instagram){ loadCompetitors(); loadOwn(); }
   if(!started){ started=true; setInterval(()=>{ if(document.visibilityState==="visible"&&!S.loading&&S.status&&S.status.instagram) loadCompetitors(); },15*60*1000); }
 }
