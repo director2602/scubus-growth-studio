@@ -1,0 +1,762 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="icon" href="/logo.png">
+<title>S-CUBUS Growth Studio</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,500;0,6..96,600;0,6..96,700;1,6..96,500&family=Manrope:wght@400;500;600;700;800&family=Tiro+Devanagari+Hindi&display=swap">
+<style>
+/* Layout: a quiet studio ledger. Plum masthead, tabbed work areas, data first, then the making tools. */
+:root{
+  --bg:#F6F3F2; --surface:#FFFFFF; --sunk:#F2EDEC; --ink:#221A21; --muted:#6A5E66; --line:#E7DFDE;
+  --brand:#400c4d; --on-brand:#FFFFFF; --accent:#400c4d; --gold:#9A5A5F; --gold-soft:#F7ECE8;
+  --rose-1:#F0C8B8; --rose-2:#C98E86; --rose-3:#B06F76;
+  --good:#22704F; --bad:#AE3420; --warn:#8A5A00;
+  --display:"Bodoni Moda","Didot","Bodoni 72",Georgia,serif;
+  --body:"Manrope","Segoe UI",system-ui,-apple-system,sans-serif;
+  --deva:"Tiro Devanagari Hindi","Noto Serif Devanagari",serif;
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#131012; --surface:#1C171B; --sunk:#251E23; --ink:#F3ECEF; --muted:#B4A8AF; --line:#352B32;
+  --brand:#6B2A7A; --on-brand:#FFFFFF; --accent:#E5BFEB; --gold:#E6B2A2; --gold-soft:#2B1F20;
+  --rose-1:#F3CDBD; --rose-2:#D59C8F; --rose-3:#BE7F84;
+  --good:#6FCF9F; --bad:#FF8A72; --warn:#E8B04A; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#131012; --surface:#1C171B; --sunk:#251E23; --ink:#F3ECEF; --muted:#B4A8AF; --line:#352B32;
+  --brand:#6B2A7A; --on-brand:#FFFFFF; --accent:#E5BFEB; --gold:#E6B2A2; --gold-soft:#2B1F20;
+  --rose-1:#F3CDBD; --rose-2:#D59C8F; --rose-3:#BE7F84;
+  --good:#6FCF9F; --bad:#FF8A72; --warn:#E8B04A; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5;padding-inline:16px;padding-block:0 48px}
+.wrap{max-width:1180px;margin:0 auto}
+h1,h2,h3{font-family:var(--display);font-weight:600;text-wrap:balance;margin:0;letter-spacing:-.01em}
+button,select,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.eyebrow{font-size:11.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
+.muted{color:var(--muted)}
+.num{font-variant-numeric:tabular-nums}
+
+/* masthead */
+.mast{background:var(--surface);color:var(--ink);margin-inline:-16px;padding:22px 16px 0;border-bottom:1px solid var(--line);position:relative}
+.mast::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:linear-gradient(90deg,transparent,var(--rose-2) 20%,var(--rose-1) 50%,var(--rose-3) 80%,transparent);opacity:.7}
+.mast .wrap{display:flex;flex-direction:column;gap:18px}
+.mast-top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:14px}
+.roundel{width:52px;height:52px;border-radius:50%;background:#FFFFFF;display:grid;place-items:center;box-shadow:0 0 0 1.5px var(--rose-2),0 0 0 6px var(--gold-soft)}
+.roundel img{width:30px;height:36px;object-fit:contain}
+.brand h1{font-size:30px;line-height:1;font-weight:600}
+.brand h1 i{font-weight:500;color:var(--gold)}
+.brand .sub{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);font-weight:700}
+.status{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:6px 12px;font-size:12.5px;font-weight:600;border:1px solid var(--line);color:var(--ink)}
+.dot{width:8px;height:8px;border-radius:50%;background:#C9B9CC}
+.dot.live{background:#7EE2A8;box-shadow:0 0 0 3px rgba(126,226,168,.25)}
+.dot.est{background:var(--rose-2)}
+.btn-ghost{background:transparent;border:1px solid var(--line);color:var(--ink);border-radius:999px;padding:7px 14px;font-weight:600;font-size:13px;cursor:pointer}
+.btn-ghost:hover{border-color:var(--rose-2)}
+.tabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
+.tabs button{background:none;border:0;color:var(--muted);padding:12px 16px 14px;font-weight:600;font-size:14px;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--rose-3)}
+
+/* sections */
+.panel{padding-top:28px;display:flex;flex-direction:column;gap:22px}
+.head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap}
+.head h2{font-size:clamp(26px,3.4vw,36px);line-height:1.1}
+.head p{margin:6px 0 0;max-width:62ch;color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+.btn{display:inline-flex;align-items:center;gap:8px;border-radius:999px;padding:10px 18px;font-weight:700;font-size:14px;cursor:pointer;border:1px solid transparent;min-height:42px}
+.btn-primary{background:var(--brand);color:var(--on-brand);box-shadow:inset 0 -2px 0 var(--rose-2)}
+.btn-primary:hover{filter:brightness(1.12)}
+.btn-line{background:transparent;border-color:var(--line);color:var(--ink)}
+.btn-line:hover{border-color:var(--gold)}
+.btn[disabled]{opacity:.55;cursor:progress}
+.note{font-size:13px;color:var(--muted)}
+.alert{border:1px solid var(--line);border-left-width:1px;background:var(--gold-soft);border-radius:12px;padding:12px 14px;font-size:13.5px;display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap}
+.alert a{color:var(--accent);font-weight:700}
+.alert b{color:var(--ink)}
+
+/* table */
+.tablebox{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:760px}
+th,td{text-align:right;padding:14px 16px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums;white-space:nowrap}
+th{font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700}
+th:first-child,td:first-child{text-align:left}
+tr:last-child td{border-bottom:0}
+tr.you td{background:var(--sunk)}
+.acct{display:flex;flex-direction:column}
+.acct b{font-weight:700}
+.acct span{font-size:12.5px;color:var(--muted)}
+.big{font-family:var(--display);font-size:22px;font-weight:600}
+.up{color:var(--good);font-weight:700}.down{color:var(--bad);font-weight:700}.flat{color:var(--muted);font-weight:700}
+.src{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border-radius:999px;padding:3px 8px}
+.src.live{color:var(--good);border:1px solid currentColor}
+.src.est{color:var(--gold);border:1px solid currentColor}
+
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:18px}
+.posts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:14px}
+.post{padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.post .meta{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;color:var(--muted)}
+.post p{margin:0;font-size:14px;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.post .stats{display:flex;gap:14px;font-size:13px;font-weight:700}
+.post a{color:var(--accent);font-weight:700;font-size:13px}
+.chip{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:6px;background:var(--sunk);color:var(--accent)}
+.empty{padding:28px;text-align:left;display:flex;flex-direction:column;gap:6px}
+.empty h3{font-size:22px}
+
+.insights{padding:22px;display:flex;flex-direction:column;gap:14px}
+.insights ol{max-width:80ch;margin:0;padding-left:20px;display:flex;flex-direction:column;gap:10px}
+.insights li b{display:block}
+
+/* reel lab */
+.controls{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;padding:18px}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field label{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+select,input[type=text],textarea{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-height:42px;width:100%}
+textarea{resize:vertical;min-height:84px}
+.ideas{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:16px}
+.idea{padding:20px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.idea h3{font-size:23px;line-height:1.15}
+.hook{font-family:var(--display);font-style:italic;font-size:18px;color:var(--accent);border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:10px 0}
+.idea ol{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:14px}
+.idea .k{font-size:11.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
+.idea .tags{font-size:13px;color:var(--muted);word-break:break-word}
+.idea .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:auto}
+.emo{display:flex;gap:6px;flex-wrap:wrap}.emo span{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:999px;border:1px solid var(--line);color:var(--gold)}
+.moment{font-size:14px;color:var(--ink);background:var(--sunk);border-radius:10px;padding:10px 12px}
+.example-tag{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--warn)}
+
+/* post studio */
+.studio{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:22px;align-items:start}
+@media (max-width:860px){.studio{grid-template-columns:1fr}}
+.form{padding:18px;display:flex;flex-direction:column;gap:14px}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:8px 12px;font-size:13px;font-weight:600;cursor:pointer;min-height:38px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.preview{padding:18px;display:flex;flex-direction:column;gap:14px;align-items:center;position:sticky;top:env(safe-area-inset-top,0px)}
+.preview canvas{width:100%;max-width:480px;height:auto;border-radius:4px;box-shadow:0 24px 50px -24px rgba(30,16,26,.45),0 0 0 1px var(--line)}
+.caption{width:100%;max-width:480px;font-size:13.5px;white-space:pre-wrap;background:var(--sunk);border-radius:10px;padding:12px 14px}
+
+/* growth */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:14px}
+.kpi{padding:18px;display:flex;flex-direction:column;gap:4px}
+.kpi .v{font-family:var(--display);font-size:36px;font-weight:600;line-height:1.1}
+.chart{padding:18px;overflow-x:auto}
+.chart svg{display:block;width:100%;min-width:520px;height:auto}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--surface);padding:10px 16px;border-radius:999px;font-weight:600;font-size:14px;box-shadow:0 10px 30px -10px rgba(0,0,0,.5)}
+@media (prefers-reduced-motion:no-preference){.fade{animation:fade .35s ease both}@keyframes fade{from{opacity:.4;transform:translateY(4px)}to{opacity:1;transform:none}}}
+.login{position:fixed;inset:0;background:var(--bg);display:grid;place-items:center;padding:16px;z-index:50}
+.login form{width:min(100%,380px);padding:32px;display:flex;flex-direction:column;gap:16px;text-align:left}
+.login h1{font-size:34px}.login .err{color:var(--bad);font-size:13.5px;min-height:1em}
+.ap-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:14px}
+.ap-card{padding:18px;display:flex;flex-direction:column;gap:6px}
+.state{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700}
+.state .dot{width:9px;height:9px}
+.ok .dot{background:var(--good)}.off .dot{background:var(--rose-2)}
+.report{padding:24px;display:flex;flex-direction:column;gap:18px}
+.report h3{font-size:30px;line-height:1.15}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:18px}
+.cols ul{margin:6px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
+.plan td,.plan th{white-space:normal;text-align:left}
+.log{display:flex;flex-direction:column}
+.log div{display:grid;grid-template-columns:150px 170px minmax(0,1fr);gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+@media (max-width:640px){.log div{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header class="mast">
+  <div class="wrap">
+    <div class="mast-top">
+      <div class="brand">
+        <div class="roundel"><img src="/logo.png" alt="S-CUBUS logo"></div>
+        <div>
+          <div class="sub">S-CUBUS · Dwarka</div>
+          <h1>Growth <i>Studio</i></h1>
+        </div>
+      </div>
+      <div class="status">
+        <span class="pill" id="statusPill"><span class="dot est" id="statusDot"></span><span id="statusText">Showing baseline estimates</span></span>
+        <button class="btn-ghost" id="refreshBtn" type="button">Refresh data</button>
+        <button class="btn-ghost" id="logoutBtn" type="button">Sign out</button>
+      </div>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Sections">
+      <button role="tab" id="tab-autopilot" aria-selected="true" aria-controls="autopilot">Autopilot</button>
+      <button role="tab" id="tab-pulse" aria-selected="false" aria-controls="pulse">Competitor pulse</button>
+      <button role="tab" id="tab-reels" aria-selected="false" aria-controls="reels">Reel lab</button>
+      <button role="tab" id="tab-studio" aria-selected="false" aria-controls="studio">Post studio</button>
+      <button role="tab" id="tab-growth" aria-selected="false" aria-controls="growth">My growth</button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- PULSE -->
+  <section class="panel" id="autopilot" role="tabpanel" aria-labelledby="tab-autopilot">
+    <div class="head">
+      <div>
+        <div class="eyebrow">Runs on its own</div>
+        <h2>Autopilot</h2>
+        <p>Every morning at 9 the app saves fresh follower and post numbers for you and the three competitors. Every Monday at 8 it writes your weekly brief: growth, what competitors did, what to do this week, a 7-day plan and four new reel ideas.</p>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-line" id="runDaily" type="button">Refresh numbers now</button>
+        <button class="btn btn-primary" id="runWeekly" type="button">Write this week's brief now</button>
+      </div>
+    </div>
+    <div class="ap-grid" id="apCards"></div>
+    <div id="apStatus" class="note"></div>
+    <div id="apReport"></div>
+    <div class="card" style="padding:18px 22px">
+      <div class="eyebrow">Activity log</div>
+      <div class="log" id="apLog"></div>
+    </div>
+  </section>
+
+  <section class="panel" id="pulse" role="tabpanel" aria-labelledby="tab-pulse" hidden>
+    <div class="head">
+      <div>
+        <div class="eyebrow">Last 30 days</div>
+        <h2>How you stack up against the big three</h2>
+        <p>Followers, posting pace and engagement for @s_cubus_dwarka next to Physics Wallah, Allen and Aakash. Rows marked Live come straight from Instagram. The rest are public estimates until the connection is signed in.</p>
+      </div>
+    </div>
+    <div id="pulseAlert"></div>
+    <div class="card tablebox">
+      <table>
+        <thead><tr><th>Account</th><th>Followers</th><th>30-day change</th><th>Posts / week</th><th>Avg likes</th><th>Avg comments</th><th>Engagement</th><th>Reels share</th><th>Source</th></tr></thead>
+        <tbody id="pulseBody"></tbody>
+      </table>
+    </div>
+    <div>
+      <div class="card insights" id="insightsCard">
+        <div class="eyebrow">Read the room</div>
+        <h3 style="font-size:24px">What the numbers mean for S-CUBUS</h3>
+        <div id="insightsBody">
+          <ol>
+            <li><b>Faces beat posters.</b> Physics Wallah's engagement is 4–11× Allen's and Aakash's, and its feed is built around teachers students know by name.</li>
+            <li><b>The giants have stalled.</b> All three were flat or shrinking over the last 30 days, which leaves room for a local account that replies to people.</li>
+            <li><b>Scholarship-test season is loud.</b> Allen (TALLENTEX) and Aakash (ANTHE) push their exams now. SATHII needs one clear hook, one date and one link every week.</li>
+          </ol>
+          <p class="note" style="margin:10px 0 0">Starting notes from the October review. Press Analyse to rewrite them from the live numbers.</p>
+        </div>
+        <div><button class="btn btn-primary" id="analyseBtn" type="button">Analyse the latest data</button></div>
+      </div>
+    </div>
+    <div class="head" style="margin-top:6px">
+      <div>
+        <div class="eyebrow">Their best posts, last 30 days</div>
+        <h2 style="font-size:28px">What's working right now</h2>
+        <p>Ranked by likes plus comments. Use these as raw material in the Reel lab.</p>
+      </div>
+    </div>
+    <div class="posts" id="topPosts"></div>
+  </section>
+
+  <!-- REELS -->
+  <section class="panel" id="reels" role="tabpanel" aria-labelledby="tab-reels" hidden>
+    <div class="head">
+      <div>
+        <div class="eyebrow">Reel lab</div>
+        <h2>Reel ideas a teacher can shoot on a phone</h2>
+        <p>Every batch takes four new topics from real student and family life, each with its own feeling and storytelling style. Ideas are checked against everything written before, so nothing repeats.</p>
+      </div>
+    </div>
+    <div class="card controls">
+      <div class="field" style="flex:1 1 180px"><label for="rlAudience">Who it's for</label>
+        <select id="rlAudience"><option>Class 7–9 Foundation students</option><option>Class 10 board students</option><option>JEE aspirants (Class 11)</option><option>NEET aspirants (Class 11)</option><option selected>Parents in Dwarka</option></select></div>
+      <div class="field" style="flex:1 1 180px"><label for="rlGoal">Goal</label>
+        <select id="rlGoal"><option selected>SATHII registrations</option><option>New followers</option><option>Admission enquiries</option><option>Saves and shares</option></select></div>
+      <div class="field" style="flex:1 1 160px"><label for="rlEmotion">Feeling</label>
+        <select id="rlEmotion"><option selected>Surprise me</option><option>Pride</option><option>Fear turning into courage</option><option>Nostalgia</option><option>Gentle humour</option><option>Gratitude</option><option>Hope</option><option>Belonging</option><option>Quiet determination</option></select></div>
+      <div class="field" style="flex:1 1 140px"><label for="rlLang">Language</label>
+        <select id="rlLang"><option selected>Hinglish</option><option>Hindi</option><option>English</option></select></div>
+      <div class="field" style="flex:2 1 240px"><label for="rlExtra">Anything specific? (optional)</label>
+        <input type="text" id="rlExtra" placeholder="e.g. feature our physics teacher, Diwali week"></div>
+      <button class="btn btn-primary" id="rlGo" type="button">Generate 4 ideas</button>
+    </div>
+    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><div id="rlStatus" class="note"></div><div id="rlHistory" class="note"></div></div>
+    <div class="ideas" id="ideas"></div>
+  </section>
+
+  <!-- STUDIO -->
+  <section class="panel" id="studio" role="tabpanel" aria-labelledby="tab-studio" hidden>
+    <div class="head">
+      <div>
+        <div class="eyebrow">Post studio</div>
+        <h2>Premium posts in the house colours</h2>
+        <p>Pick a template, describe the post, and let AI write it, or type the words yourself. Download a ready-to-post PNG.</p>
+      </div>
+    </div>
+    <div class="studio">
+      <div class="card form">
+        <div class="field"><label>Template</label><div class="seg" id="segTemplate"></div></div>
+        <div class="field"><label>Size</label><div class="seg" id="segFormat"></div></div>
+        <div class="field"><label>Style</label><div class="seg" id="segStyle"></div></div>
+        <div class="field"><label for="psBrief">Brief for AI (optional)</label>
+          <textarea id="psBrief" placeholder="e.g. Announce SATHII on 15 Nov, scholarship up to 50%, for classes 7–11"></textarea></div>
+        <button class="btn btn-primary" id="psWrite" type="button">Write it with AI</button>
+        <div id="psStatus" class="note"></div>
+        <div class="field"><label for="psEyebrow">Eyebrow</label><input type="text" id="psEyebrow"></div>
+        <div class="field"><label for="psHeadline">Headline</label><textarea id="psHeadline" rows="2"></textarea></div>
+        <div class="field"><label for="psPoints">Points (one per line, up to 3)</label><textarea id="psPoints" rows="3"></textarea></div>
+        <div class="field"><label for="psCta">Button text</label><input type="text" id="psCta"></div>
+        <div class="field"><label for="psPhoto">Photo (optional): topper, teacher, campus</label><input type="file" id="psPhoto" accept="image/*"></div>
+        <button class="btn btn-line" id="psClearPhoto" type="button" hidden>Remove photo</button>
+      </div>
+      <div class="card preview">
+        <canvas id="postCanvas" width="1080" height="1350" aria-label="Post preview"></canvas>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+          <button class="btn btn-primary" id="psDownload" type="button">Download PNG</button>
+          <button class="btn btn-line" id="psCopy" type="button">Copy caption</button>
+        </div>
+        <div class="caption" id="psCaption"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- GROWTH -->
+  <section class="panel" id="growth" role="tabpanel" aria-labelledby="tab-growth" hidden>
+    <div class="head">
+      <div>
+        <div class="eyebrow">@s_cubus_dwarka</div>
+        <h2>Your growth, week by week</h2>
+        <p>Pulled from Instagram Insights for your business account. Competitor follower counts are saved every day this page is opened, so the 30-day change fills in on its own.</p>
+      </div>
+    </div>
+    <div id="growthAlert"></div>
+    <div class="kpis" id="kpis"></div>
+    <div class="card chart" id="chart"></div>
+    <div class="card tablebox">
+      <table style="min-width:520px">
+        <thead><tr><th>Account</th><th>First saved</th><th>Followers then</th><th>Latest</th><th>Followers now</th><th>Change</th></tr></thead>
+        <tbody id="historyBody"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+<div class="toast" id="toast" hidden></div>
+<div class="login" id="login" hidden>
+  <form class="card" id="loginForm">
+    <div class="roundel" style="width:64px;height:64px"><img src="/logo.png" alt="S-CUBUS logo" style="width:38px;height:46px"></div>
+    <div><div class="eyebrow">S-CUBUS · Dwarka</div><h1>Growth <i style="color:var(--gold);font-weight:500">Studio</i></h1></div>
+    <div class="field"><label for="pw">Password</label><input type="password" id="pw" autocomplete="current-password" required style="background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-height:44px"></div>
+    <div class="err" id="loginErr"></div>
+    <button class="btn btn-primary" type="submit">Sign in</button>
+  </form>
+</div>
+
+<script>
+(function(){
+"use strict";
+const LOGO = "/logo.png";
+const HANDLES = ["s_cubus_dwarka","physicswallah","allen_career_institute","aakasheducation"];
+const NAMES = {s_cubus_dwarka:"S-CUBUS Dwarka",physicswallah:"Physics Wallah",allen_career_institute:"Allen Career Institute",aakasheducation:"Aakash Educational"};
+// Public estimates (HypeAuditor, Aug–Oct 2026) shown until live data arrives
+const BASELINE = {
+  physicswallah:{followers:3948491,growth:-1.05,likes:216000,comments:4400,er:7.48},
+  allen_career_institute:{followers:372293,growth:0,likes:1226,comments:28,er:1.77},
+  aakasheducation:{followers:277862,growth:0,likes:226,comments:5,er:0.65}
+};
+const CONTEXT = "S-CUBUS (S Cubus Educational Pvt. Ltd.) is a coaching institute in Dwarka, New Delhi, Instagram @s_cubus_dwarka. Courses: Foundation (Class 7–9), Class 10 boards, JEE and NEET (Class 11). It runs the SATHII Scholarship & Aptitude Examination for classes 7th–11th (always spell it SATHII). Hindi tagline: समर्पण · सुनिश्चित · सफलता (dedication, certainty, success). Competitors: Physics Wallah, Allen, Aakash (Aakash has a centre in Dwarka Sector 12B). Never invent results, ranks, percentages, dates or fees: use [PLACEHOLDER] in square brackets for any fact you don't have.";
+
+const S = {mcp:null,sample:null,db:null,downloads:null,
+  accounts:null, media:null, accErr:null, medErr:null, fetchedAt:null, loading:false,
+  own:null, ownErr:null, snapshots:[], ideas:null, ideasExample:true};
+
+const $ = (id)=>document.getElementById(id);
+const esc = (s)=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const toNum = (v)=>{ if(v==null||v==="") return null; if(typeof v==="number") return v; const n=parseFloat(String(v).replace(/,/g,"")); return isNaN(n)?null:n; };
+const fmt = (n)=>{ if(n==null) return "—"; const a=Math.abs(n); if(a>=1e6) return (n/1e6).toFixed(2).replace(/\.?0+$/,"")+"M"; if(a>=1e4) return Math.round(n/1e3)+"K"; if(a>=1e3) return (n/1e3).toFixed(1).replace(/\.0$/,"")+"K"; return Math.round(n).toLocaleString("en-IN"); };
+const pct = (n,d=2)=> n==null?"—":(n>0?"+":"")+n.toFixed(d)+"%";
+const today = ()=>{ const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); };
+const sleep = (ms)=>new Promise(r=>setTimeout(r,ms));
+function toast(msg){ const t=$("toast"); t.textContent=msg; t.hidden=false; clearTimeout(toast._t); toast._t=setTimeout(()=>{t.hidden=true},2600); }
+
+/* ---------- tabs ---------- */
+const TABS=["autopilot","pulse","reels","studio","growth"];
+function showTab(name){ TABS.forEach(t=>{ $("tab-"+t).setAttribute("aria-selected", t===name?"true":"false"); $(t).hidden = t!==name; }); if(name==="studio") drawPost(); try{localStorage.setItem("gs-tab",name)}catch(e){} }
+TABS.forEach(t=>$("tab-"+t).addEventListener("click",()=>showTab(t)));
+
+/* ---------- server API ---------- */
+async function api(path,opts){
+  const r=await fetch(path,Object.assign({headers:{"Content-Type":"application/json"},credentials:"same-origin"},opts||{}));
+  let j=null; try{ j=await r.json(); }catch(e){}
+  if(r.status===401){ showLogin(); throw {code:"auth"}; }
+  if(!r.ok) throw Object.assign({status:r.status},j||{});
+  return j;
+}
+function alertHtml(c,prefix){ if(!c) return ""; return '<div class="alert"><span>'+(prefix?'<b>'+esc(prefix)+'</b> ':'')+esc(c.text)+'</span></div>'; }
+function errCopy(e){
+  if(!e) return "";
+  if(e.error==="not_configured") return {text:"Instagram isn't connected yet. Add IG_ACCESS_TOKEN and IG_USER_ID in the app's Render settings (see the setup guide)."};
+  return {text:"Instagram returned an error: "+(e.error||e.message||"unknown")+". Press Refresh data to try again."};
+}
+async function loadCompetitors(force){
+  S.loading=true; setStatus();
+  try{
+    const d=await api("/api/competitors"+(force?"?refresh=1":""));
+    S.accounts=(d.accounts||[]).map(a=>({username:a.username,name:a.name,followers:a.followers,total_post_count:a.posts}));
+    const cutoff=Date.now()-30*864e5; S.media=[];
+    (d.accounts||[]).forEach(a=>(a.media||[]).forEach(m=>{ if(Date.parse(m.timestamp)>=cutoff) S.media.push({username:a.username,post_timestamp:m.timestamp,post_type:m.type,post_permalink:m.permalink,post_caption:m.caption,post_likes:m.likes,post_comments:m.comments}); }));
+    const errs=Object.entries(d.errors||{}); S.accErr=null; S.medErr=errs.length?{error:errs.map(([k,v])=>"@"+k+": "+v).join("; ")}:null;
+    S.fetchedAt=new Date(d.fetchedAt||Date.now());
+  }catch(e){ if(e.code!=="auth") S.accErr=e; }
+  S.loading=false; renderPulse(); setStatus(); loadSnapshots();
+}
+async function loadOwn(force){
+  try{ const d=await api("/api/own"+(force?"?refresh=1":"")); S.own=(d.series||[]).map(r=>({date:r.date,followers:null,gain:r.gain==null?null:r.gain,reach:r.reach==null?null:r.reach})); S.ownFollowers=d.followers; S.ownErr=null; }
+  catch(e){ if(e.code!=="auth") S.ownErr=e; }
+  renderGrowth();
+}
+async function loadSnapshots(){ try{ const d=await api("/api/snapshots"); S.snapshots=Array.isArray(d)?d:[]; }catch(e){} renderPulse(); renderGrowth(); }
+S.sample={ json: async(prompt)=>{ try{ const r=await api("/api/ai",{method:"POST",body:JSON.stringify({prompt})}); return r.data; }catch(e){ throw {code:e.error||e.code||"upstream_error"}; } } };
+
+function snapChange(u){
+  const cutoff=new Date(Date.now()-31*864e5); const c=cutoff.toISOString().slice(0,10);
+  const list=S.snapshots.filter(s=>s.username===u && s.date>=c).sort((a,b)=>a.date<b.date?-1:1);
+  if(list.length<2||list[0].date===list[list.length-1].date) return null;
+  const a=list[0], b=list[list.length-1]; return {pct:(b.followers-a.followers)/a.followers*100, from:a.date, abs:b.followers-a.followers};
+}
+
+/* ---------- pulse ---------- */
+function liveStats(u){
+  const acc=(S.accounts||[]).find(r=>String(r.username||"").toLowerCase()===u); if(!acc) return null;
+  const followers=toNum(acc.followers);
+  const posts=(S.media||[]).filter(r=>String(r.username||"").toLowerCase()===u);
+  const n=posts.length; let L=0,C=0,reels=0; posts.forEach(p=>{L+=toNum(p.post_likes)||0;C+=toNum(p.post_comments)||0; if(/video|reel/i.test(String(p.post_type||""))) reels++;});
+  return {followers, perWeek: S.media? n/30*7 : null, likes: n?L/n:null, comments:n?C/n:null, er:(n&&followers)?((L+C)/n)/followers*100:null, reels:n?reels/n*100:null, live:true};
+}
+function rowFor(u){
+  const live=liveStats(u); const base=BASELINE[u]; const ch=snapChange(u);
+  if(live) return Object.assign(live,{growth: ch?ch.pct:null, growthNote: ch?"since "+ch.from:"tracking from today"});
+  if(base) return {followers:base.followers,perWeek:null,likes:base.likes,comments:base.comments,er:base.er,reels:null,growth:base.growth,growthNote:"estimate",live:false};
+  return {followers:null,perWeek:null,likes:null,comments:null,er:null,reels:null,growth:null,growthNote:"connect to load",live:false};
+}
+function renderPulse(){
+  const rows=HANDLES.map(u=>{ const r=rowFor(u); const g=r.growth; const gc=g==null?"flat":g>0.005?"up":g<-0.005?"down":"flat";
+    return '<tr class="'+(u==="s_cubus_dwarka"?"you":"")+'"><td><div class="acct"><b>'+esc(NAMES[u])+(u==="s_cubus_dwarka"?" (you)":"")+'</b><span>@'+esc(u)+'</span></div></td>'+
+      '<td class="big">'+fmt(r.followers)+'</td>'+
+      '<td><span class="'+gc+'">'+(g==null?"—":pct(g))+'</span><div class="note">'+esc(r.growthNote)+'</div></td>'+
+      '<td>'+(r.perWeek==null?"—":r.perWeek.toFixed(1))+'</td><td>'+fmt(r.likes)+'</td><td>'+fmt(r.comments)+'</td>'+
+      '<td><b>'+(r.er==null?"—":r.er.toFixed(2)+"%")+'</b></td><td>'+(r.reels==null?"—":Math.round(r.reels)+"%")+'</td>'+
+      '<td><span class="src '+(r.live?"live":"est")+'">'+(r.live?"Live":"Estimate")+'</span></td></tr>'; }).join("");
+  $("pulseBody").innerHTML=rows;
+  let a="";
+  if(S.status&&!S.status.instagram) a=alertHtml({text:"Instagram isn't connected yet, so these rows are public estimates (HypeAuditor, Aug–Oct 2026). Add the Instagram keys in Render to switch to live numbers."});
+  else if(S.accErr) a=alertHtml(errCopy(S.accErr),"Live competitor data:");
+  else if(S.medErr) a=alertHtml(errCopy(S.medErr),"Recent posts:");
+  $("pulseAlert").innerHTML=a;
+  renderTopPosts();
+}
+function renderTopPosts(){
+  const el=$("topPosts");
+  if(!S.media||!S.media.length){ el.innerHTML='<div class="card empty" style="grid-column:1/-1"><h3>Top posts appear here</h3><p class="muted" style="margin:0">Once Instagram is connected, the highest-engagement posts from Physics Wallah, Allen and Aakash in the last 30 days show here, with links.</p></div>'; return; }
+  const top=S.media.filter(p=>String(p.username||"").toLowerCase()!=="s_cubus_dwarka").map(p=>Object.assign({},p,{score:(toNum(p.post_likes)||0)+(toNum(p.post_comments)||0)})).sort((a,b)=>b.score-a.score).slice(0,9);
+  el.innerHTML=top.map(p=>{ const u=String(p.username||"").toLowerCase(); const t=String(p.post_type||"POST").replace(/_/g," ").replace("CAROUSEL ALBUM","CAROUSEL");
+    const d=String(p.post_timestamp||"").slice(0,10);
+    return '<article class="card post fade"><div class="meta"><span><b style="color:var(--ink)">'+esc(NAMES[u]||u)+'</b> · '+esc(d)+'</span><span class="chip">'+esc(t)+'</span></div>'+
+      '<p>'+esc(String(p.post_caption||"(no caption)").slice(0,400))+'</p>'+
+      '<div class="stats num"><span>'+fmt(toNum(p.post_likes))+' likes</span><span>'+fmt(toNum(p.post_comments))+' comments</span>'+(toNum(p.post_views)?'<span>'+fmt(toNum(p.post_views))+' views</span>':'')+'</div>'+
+      (p.post_permalink?'<a href="'+esc(p.post_permalink)+'" target="_blank" rel="noopener">Open on Instagram →</a>':'')+'</article>'; }).join("");
+}
+function dataSummary(){
+  const lines=HANDLES.map(u=>{ const r=rowFor(u); return "@"+u+": followers "+fmt(r.followers)+", 30-day change "+(r.growth==null?"unknown":pct(r.growth))+", posts/week "+(r.perWeek==null?"unknown":r.perWeek.toFixed(1))+", avg likes "+fmt(r.likes)+", avg comments "+fmt(r.comments)+", engagement "+(r.er==null?"unknown":r.er.toFixed(2)+"%")+", reels share "+(r.reels==null?"unknown":Math.round(r.reels)+"%")+" ("+(r.live?"live":"public estimate")+")"; });
+  let top="";
+  if(S.media&&S.media.length){ top=S.media.filter(p=>String(p.username||"").toLowerCase()!=="s_cubus_dwarka").map(p=>Object.assign({},p,{score:(toNum(p.post_likes)||0)+(toNum(p.post_comments)||0)})).sort((a,b)=>b.score-a.score).slice(0,10)
+    .map(p=>"- @"+p.username+" ["+p.post_type+", "+fmt(toNum(p.post_likes))+" likes] "+String(p.post_caption||"").replace(/\s+/g," ").slice(0,220)).join("\n"); }
+  return "ACCOUNTS (last 30 days):\n"+lines.join("\n")+(top?"\n\nTOP COMPETITOR POSTS:\n"+top:"\n\n(No post-level data yet. Known patterns: Physics Wallah leads with teachers on camera and motivation; Allen pushes TALLENTEX scholarship test, toppers; Aakash runs brand campaigns and the ANTHE talent exam.)");
+}
+function sampleCopy(e){
+  switch(e&&e.code){ case "cancelled": case "auth": return ""; case "not_configured": return "AI isn't set up yet. Add ANTHROPIC_API_KEY in the app's Render settings."; case "bad_key": return "The AI key was rejected. Check ANTHROPIC_API_KEY in Render."; case "not_granted": case "sampling_disabled": case "not_declared": case "capability_disabled": case "capability_removed": return "AI writing isn't available in this view.";
+    case "rate_limited": return "Too many requests right now. Try again in a minute."; case "refused": return "Claude couldn't help with that request. Try rewording it.";
+    case "invalid_json": case "empty_completion": return "The answer came back incomplete. Press the button to try again."; case "session_expired": return "Sign in to Claude again, then retry.";
+    case "prompt_too_large": return "Too much data to send at once."; default: return "Something interrupted the request. Try again."; }
+}
+async function analyse(){
+  if(!S.sample) return; const b=$("analyseBtn"); b.disabled=true; b.textContent="Thinking…";
+  try{
+    const out=await S.sample.json(CONTEXT+"\n\nYou are a social media strategist for this institute. Using the data below, give exactly 4 takeaways for growing @s_cubus_dwarka on Instagram this month, plus 3 concrete actions for this week. Be specific to the numbers. Plain, direct language.\n\n"+dataSummary()+'\n\nReply with only JSON: {"takeaways":[{"title":"short","detail":"1-2 sentences"}],"actions":["..."]}',{cache:false});
+    const tk=(out&&out.takeaways)||[], ac=(out&&out.actions)||[];
+    $("insightsBody").innerHTML='<ol class="fade">'+tk.map(t=>'<li><b>'+esc(t.title)+'</b>'+esc(t.detail)+'</li>').join("")+'</ol>'+(ac.length?'<div class="eyebrow" style="margin-top:14px">This week</div><ol>'+ac.map(a=>'<li>'+esc(a)+'</li>').join("")+'</ol>':'')+'<p class="note" style="margin:10px 0 0">Written by Claude from the table above'+(S.fetchedAt?' (data from '+S.fetchedAt.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})+')':' (estimates)')+'.</p>';
+  }catch(e){ const m=sampleCopy(e); if(m) toast(m); }
+  b.disabled=false; b.textContent="Analyse the latest data";
+}
+
+/* ---------- reel lab ---------- */
+const EXAMPLE_IDEAS=[
+ {title:"SATHII kya hai? 30 second mein",format:"Talking head + quick cuts, 30s",hook:"Scholarship chahiye, par coaching ki fees dekh ke darr lagta hai? Ruko.",shots:["Teacher walks into frame, close-up, says the hook","Holds up a SATHII admit card: Class 7–11, Foundation, JEE, NEET","Quick cuts: classroom, students solving, doubt desk","Teacher at the S-CUBUS Dwarka entrance: exam on [DATE]","Points up at the bio: comment SATHII for details"],onscreen:"SCHOLARSHIP CHAHIYE? · CLASS 7–11 · UP TO [X]% · [DATE]",caption:"SATHII 2026 is here: a scholarship and aptitude exam for Class 7–11 at S-CUBUS Dwarka. Comment SATHII and we'll DM you the details.",hashtags:["#SATHII","#SCUBUS","#Dwarka","#ScholarshipExam","#JEE","#NEET"],why:"Allen and Aakash are pushing their scholarship tests now; this puts SATHII in the same conversation with a local, human face.",inspired:"Allen's TALLENTEX posts"},
+ {title:"Myth vs fact: coaching sirf Class 11 se?",format:"Myth/fact split screen, 20s",hook:"\"Coaching toh Class 11 mein shuru karenge.\" Sach mein?",shots:["Parent-style voiceover reads the myth on a red card","Teacher flips the card: FACT side","Teacher explains in two lines why concepts start in Class 8–9","On-screen: Foundation batches for Class 7–9","Call to action: save this and send it to a parent"],onscreen:"MYTH ✕ · FACT ✓ · START EARLY",caption:"Most JEE and NEET concepts start in Class 9. Save this and send it to a parent who needs it.",hashtags:["#Foundation","#Class9","#JEEprep","#Dwarka","#SCUBUS"],why:"The national accounts talk to Class 11–12; parents of younger students in Dwarka are an open audience.",inspired:"Physics Wallah's myth-busting shorts"},
+ {title:"Teacher answers your comments",format:"Reply-to-comment reel, 30–45s",hook:"Kal ek student ne poocha… [QUESTION FROM COMMENTS]",shots:["Screenshot of a real comment pinned on screen","Teacher reads it aloud and smiles","Solves it on the whiteboard in 3 steps","Ends with: drop your doubt below, we'll answer the best one next week"],onscreen:"YOUR DOUBT, OUR ANSWER",caption:"You asked, we answered. Drop your toughest doubt below and our teachers will pick one next week.",hashtags:["#DoubtSolving","#Physics","#Class10","#SCUBUS","#Dwarka"],why:"Replies drive comments, and comments are where Allen and Aakash are weakest (3–28 per post).",inspired:"Physics Wallah's teacher-led engagement"}
+];
+function renderIdeas(){
+  const list=S.ideas||EXAMPLE_IDEAS;
+  $("ideas").innerHTML=list.map((it,i)=>'<article class="card idea fade">'+
+    (S.ideasExample?'<span class="example-tag">Example idea</span>':'')+
+    ((it.emotion||it.topic)?'<div class="emo">'+(it.emotion?'<span>'+esc(it.emotion)+'</span>':'')+(it.topic?'<span>'+esc(it.topic)+'</span>':'')+'</div>':'')+
+    '<div class="eyebrow">'+esc(it.format||"Reel")+'</div><h3>'+esc(it.title)+'</h3>'+
+    (it.moment?'<div class="moment"><b>The moment:</b> '+esc(it.moment)+'</div>':'')+
+    '<div class="hook">“'+esc(it.hook)+'”</div>'+
+    '<div><div class="k">Shot list</div><ol>'+(it.shots||[]).map(s=>'<li>'+esc(s)+'</li>').join("")+'</ol></div>'+
+    '<div><div class="k">On-screen text</div><div>'+esc(it.onscreen)+'</div></div>'+
+    '<div><div class="k">Caption</div><div>'+esc(it.caption)+'</div><div class="tags">'+esc((it.hashtags||[]).join(" "))+'</div></div>'+
+    '<div><div class="k">Why it works</div><div class="muted">'+esc(it.why)+(it.inspired?' <i>Inspired by: '+esc(it.inspired)+'</i>':'')+'</div></div>'+
+    '<div class="row"><button class="btn btn-line" type="button" data-copy="'+i+'">Copy script</button><button class="btn btn-primary" type="button" data-cover="'+i+'">Make the cover</button></div></article>').join("");
+}
+$("ideas").addEventListener("click",async(ev)=>{
+  const b=ev.target.closest("button"); if(!b) return; const list=S.ideas||EXAMPLE_IDEAS;
+  if(b.dataset.copy!=null){ const it=list[+b.dataset.copy]; const txt=it.title+"\n\nHOOK: "+it.hook+"\n\nSHOTS:\n"+(it.shots||[]).map((s,i)=>(i+1)+". "+s).join("\n")+"\n\nON-SCREEN: "+it.onscreen+"\n\nCAPTION: "+it.caption+"\n"+(it.hashtags||[]).join(" "); copyText(txt); }
+  if(b.dataset.cover!=null){ const it=list[+b.dataset.cover]; setTemplate("motivation",false); P.format="story"; P.eyebrow="New reel"; P.headline=it.title; P.points=[it.hook]; P.cta="Watch now"; P.caption=it.caption+"\n\n"+(it.hashtags||[]).join(" "); syncForm(); renderSegs(); showTab("studio"); }
+});
+/* Topic and storytelling banks: each batch draws themes and formats not used recently */
+const THEMES=["A mother packing the tiffin at 6 AM before the early batch","The first test score that went badly, and what came next","A father who never studied past Class 10 checking his child's homework","The metro ride home after a long class","Two friends competing for the same rank, still sharing notes","A student who was too shy to ask a doubt for months","The night before the board exam","A teacher who stays back to explain one more time","Comparison with a cousin at a family function","Missing a cricket match or a wedding to study","The first time a concept finally clicks","A grandparent who still asks 'kitne number aaye?'","Studying through a power cut","A student who wanted to quit, and the one conversation that changed it","Diwali at home while the books stay open","The class topper who once failed a chapter test","Parents' sacrifices the student only notices later","A batch's last day before the exam","The silent hero: the security guard or office staff who knows every student's name","The 2 AM doubt sent to a teacher, and the reply","Handwriting in old notebooks from Class 7","A sibling who gave up their room for the exam year","The walk from the bus stop to the institute in winter","The first time a student taught a friend","Answering 'Beta, aage kya karna hai?' for the hundredth time","The fear of opening the result page","A student from a small town adjusting to Delhi","Rain outside, a full classroom inside","The teacher's own exam story from years ago","The pen a student always uses for exams, and why","Celebrating small wins: the first full marks in one question","A parent waiting outside the exam centre","Breaks that actually help: chai, a walk, a laugh","Friendship that starts in a coaching batch and lasts","Writing a letter to your future self after JEE/NEET","When a parent says 'jo bhi aaye, hum saath hain'","The doubt notebook that got thicker and then thinner","A student's first time on stage receiving an award","Mock test Sunday mornings","Learning to lose a rank and keep going"];
+const STORY_FORMATS=["POV reel (camera as the student's eyes)","Voice-note style narration over b-roll","Letter read aloud by a parent","Street-style quick interview with students","Before / after split, same place one year apart","One continuous shot, no cuts","Text-on-screen story with ambient sound only","Teacher talks to camera, one honest confession","Recreated memory with a 'flashback' grade","Hands-only reel (writing, packing, flipping pages)","Two-perspective reel: parent vs student","Countdown reel: 5 small things that mattered","Silent reel with one line at the end","Reaction reel: parents reading their child's note"];
+const BANNED=["dream big","hard work pays off","unlock your potential","journey","success is not a destination","believe in yourself","game changer","never give up"];
+function pickFresh(bank,usedSet,n){ const fresh=bank.filter(x=>!usedSet.has(x)); const pool=fresh.length>=n?fresh:bank.slice(); const out=[]; while(out.length<n&&pool.length){ out.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]); } return out; }
+S.history=[]; // {title,hook,topic,theme,emotion,format,at}
+function loadLocalHistory(){ try{ const h=JSON.parse(localStorage.getItem("gs-reel-history")||"[]"); if(Array.isArray(h)) S.history=h; }catch(e){} }
+function saveLocalHistory(){ try{ localStorage.setItem("gs-reel-history",JSON.stringify(S.history.slice(-300))); }catch(e){} }
+async function watchHistory(){ try{ const h=await api("/api/reel-history"); if(Array.isArray(h)&&h.length){ S.history=h; renderHistoryNote(); } }catch(e){} }
+async function recordIdeas(items){
+  const at=Date.now(); const recs=items.map((it,i)=>({title:String(it.title||""),hook:String(it.hook||""),topic:String(it.topic||""),theme:String(it.__theme||""),emotion:String(it.emotion||""),format:String(it.__format||it.format||""),at:at+i}));
+  S.history=S.history.concat(recs); saveLocalHistory(); renderHistoryNote();
+  try{ await api("/api/reel-history",{method:"POST",body:JSON.stringify(recs)}); }catch(e){}
+}
+function renderHistoryNote(){ const n=S.history.length; $("rlHistory").textContent=n?n+" ideas written so far. New ones are checked against all of them.":""; }
+const norm=(t)=>String(t||"").toLowerCase().replace(/[^a-z0-9ऀ-ॿ ]/g," ").replace(/\s+/g," ").trim();
+function tooSimilar(a,b){ const A=new Set(norm(a).split(" ").filter(w=>w.length>3)), B=new Set(norm(b).split(" ").filter(w=>w.length>3)); if(!A.size||!B.size) return false; let k=0; A.forEach(w=>{ if(B.has(w)) k++; }); return k/Math.min(A.size,B.size)>=0.6; }
+async function genIdeas(){
+  if(!S.sample) return; const b=$("rlGo"); const st=$("rlStatus"); b.disabled=true; b.textContent="Thinking…"; st.textContent="Picking new topics and writing the stories. This takes 30–90 seconds.";
+  const usedThemes=new Set(S.history.slice(-120).map(h=>h.theme)); const usedFormats=new Set(S.history.slice(-8).map(h=>h.format));
+  const themes=pickFresh(THEMES,usedThemes,4); const formats=pickFresh(STORY_FORMATS,usedFormats,4);
+  const emotionChoice=$("rlEmotion").value; const avoid=S.history.slice(-60).concat(EXAMPLE_IDEAS).map(h=>"- "+h.title+(h.hook?" | hook: "+h.hook:"")).join("\n");
+  const briefs=themes.map((t,i)=>(i+1)+". Theme: "+t+" | Storytelling format: "+formats[i]).join("\n");
+  const prompt=CONTEXT+"\n\nYou are a filmmaker who writes short, true-feeling Instagram Reels for an Indian coaching institute. Write 4 reels for @s_cubus_dwarka, one per brief below. Each must be about a DIFFERENT human moment and make the viewer feel something real.\n\nAudience: "+$("rlAudience").value+"\nGoal: "+$("rlGoal").value+"\nFeeling: "+(emotionChoice==="Surprise me"?"choose a different emotion for each reel (pride, fear turning into courage, nostalgia, gentle humour, gratitude, hope, belonging, quiet determination)":emotionChoice+", expressed differently in each reel")+"\nLanguage for hooks, voiceover and on-screen text: "+$("rlLang").value+"\nExtra request: "+($("rlExtra").value||"none")+"\nVariation key: "+Math.random().toString(36).slice(2,8)+"\n\nBRIEFS:\n"+briefs+"\n\nHow to write them:\n- Start from one specific, sensory moment (a sound, an object, a time of day, a line someone actually says at home). Show it; don't explain the lesson.\n- Each reel has a small emotional turn: tension, then release.\n- Real Delhi and Dwarka texture is welcome (metro, chai, winter mornings, family WhatsApp groups). No stereotypes and no mocking anyone.\n- The institute appears lightly, usually at the end. No hard selling, no fake results, no invented student names or ranks: use [PLACEHOLDER].\n- Filmable on a phone in under 30 minutes with students, parents or teachers who agree to appear. 15–45 seconds.\n- Never use these phrases: "+BANNED.join(", ")+". No emoji.\n- Do NOT repeat or closely resemble any of these earlier ideas, titles or hooks:\n"+avoid+"\n\nUse this data only to decide what will travel well, not to copy anyone:\n"+dataSummary()+'\n\nReply with only a JSON array of 4 objects in brief order: {"title":"","topic":"2-4 word topic","emotion":"one word or short phrase","moment":"the specific human moment in one sentence","format":"storytelling format and length","hook":"exact first line spoken or shown","shots":["4-6 shots, concrete"],"onscreen":"on-screen text","caption":"caption in the same voice, 2-4 sentences","hashtags":["5-8 tags"],"why":"why this will make people stop, feel and share","inspired":"the audience insight behind it"}';
+  try{
+    const out=await S.sample.json(prompt,{cache:false});
+    if(Array.isArray(out)&&out.length){
+      const past=S.history.concat(EXAMPLE_IDEAS);
+      const fresh=out.filter(it=>it&&it.title&&!past.some(h=>tooSimilar(h.title,it.title)||(h.hook&&tooSimilar(h.hook,it.hook))));
+      fresh.forEach((it,i)=>{ const k=out.indexOf(it); it.__theme=themes[k]||""; it.__format=formats[k]||""; });
+      if(!fresh.length){ st.textContent="Those came out too close to earlier ideas. Press Generate again for a new set."; }
+      else { S.ideas=fresh; S.ideasExample=false; renderIdeas(); await recordIdeas(fresh); st.textContent=fresh.length+" new ideas on "+fresh.map(i=>i.topic||"a new topic").join(", ")+"."+(fresh.length<out.length?" "+(out.length-fresh.length)+" were dropped for being too close to earlier ones.":""); }
+    } else st.textContent="The answer came back empty. Try again.";
+  }catch(e){ st.textContent=sampleCopy(e); }
+  b.disabled=false; b.textContent="Generate 4 ideas";
+}
+$("rlGo").addEventListener("click",genIdeas);
+
+/* ---------- post studio ---------- */
+const TEMPLATES={
+  announcement:{label:"Announcement",eyebrow:"Registrations open",headline:"SATHII Scholarship Examination 2026",points:["Classes 7th to 11th · Foundation, JEE, NEET","Scholarship up to [X]%","Exam on [DATE] at S-CUBUS Dwarka"],cta:"Register · link in bio",caption:"SATHII 2026 is open for Classes 7th–11th. Scholarship up to [X]%. Exam on [DATE] at S-CUBUS Dwarka. Register via the link in bio.\n\n#SATHII #SCUBUS #Dwarka #ScholarshipExam #JEE #NEET"},
+  topper:{label:"Topper",eyebrow:"Our pride",headline:"[STUDENT NAME] scores [SCORE]",points:["[CLASS / EXAM, YEAR]","Mentored at S-CUBUS Dwarka"],cta:"Join the next batch",caption:"So proud of [STUDENT NAME] for [RESULT]. समर्पण · सुनिश्चित · सफलता.\n\n#SCUBUS #Dwarka #Toppers"},
+  quiz:{label:"Quiz",eyebrow:"30-second challenge",headline:"A ball is thrown up at 20 m/s. How high does it go?",points:["A  10 m     B  20 m","C  40 m     D  200 m","Take g = 10 m/s²"],cta:"Comment your answer",caption:"30 seconds. No calculator. Comment A, B, C or D, and we'll post the answer at 8 PM.\n\n#PhysicsQuiz #Class9 #Class11 #SCUBUS #Dwarka"},
+  motivation:{label:"Quote",eyebrow:"Monday note",headline:"Toppers aren't born. They're made, one chapter at a time.",points:[],cta:"Save this",caption:"Consistency beats intensity. Save this for the days you need it.\n\n#Motivation #StudyMotivation #SCUBUS #Dwarka"},
+  tip:{label:"Carousel cover",eyebrow:"Class 10 · Boards 2027",headline:"5 mistakes toppers never make",points:["Swipe for the full list"],cta:"Save for later",caption:"Are you making these 5 mistakes before boards? Swipe through and save it for revision week.\n\n#Class10 #CBSE #BoardExams #SCUBUS #Dwarka"}
+};
+const FORMATS={post:{label:"Post 4:5",w:1080,h:1350},square:{label:"Square",w:1080,h:1080},story:{label:"Story / Reel 9:16",w:1080,h:1920}};
+const STYLES={porcelain:{label:"Porcelain"},midnight:{label:"Midnight"},plum:{label:"Plum"}};
+const P={template:"announcement",format:"post",style:"porcelain",photo:null};
+function setTemplate(k,fill){ P.template=k; if(fill!==false){ const t=TEMPLATES[k]; P.eyebrow=t.eyebrow; P.headline=t.headline; P.points=t.points.slice(); P.cta=t.cta; P.caption=t.caption; } }
+function renderSegs(){
+  $("segTemplate").innerHTML=Object.keys(TEMPLATES).map(k=>'<button type="button" data-k="'+k+'" aria-pressed="'+(P.template===k)+'">'+esc(TEMPLATES[k].label)+'</button>').join("");
+  $("segFormat").innerHTML=Object.keys(FORMATS).map(k=>'<button type="button" data-k="'+k+'" aria-pressed="'+(P.format===k)+'">'+esc(FORMATS[k].label)+'</button>').join("");
+  $("segStyle").innerHTML=Object.keys(STYLES).map(k=>'<button type="button" data-k="'+k+'" aria-pressed="'+(P.style===k)+'">'+esc(STYLES[k].label)+'</button>').join("");
+}
+$("segTemplate").addEventListener("click",e=>{const b=e.target.closest("button"); if(!b) return; setTemplate(b.dataset.k); syncForm(); renderSegs(); drawPost();});
+$("segFormat").addEventListener("click",e=>{const b=e.target.closest("button"); if(!b) return; P.format=b.dataset.k; renderSegs(); drawPost();});
+$("segStyle").addEventListener("click",e=>{const b=e.target.closest("button"); if(!b) return; P.style=b.dataset.k; renderSegs(); drawPost();});
+function syncForm(){ $("psEyebrow").value=P.eyebrow; $("psHeadline").value=P.headline; $("psPoints").value=P.points.join("\n"); $("psCta").value=P.cta; $("psCaption").textContent=P.caption||""; }
+["psEyebrow","psHeadline","psPoints","psCta"].forEach(id=>$(id).addEventListener("input",()=>{ P.eyebrow=$("psEyebrow").value; P.headline=$("psHeadline").value; P.points=$("psPoints").value.split("\n").map(s=>s.trim()).filter(Boolean).slice(0,3); P.cta=$("psCta").value; drawPost(); }));
+$("psPhoto").addEventListener("change",()=>{ const f=$("psPhoto").files[0]; if(!f) return; const rd=new FileReader(); rd.onload=()=>{ const im=new Image(); im.onload=()=>{P.photo=im; $("psClearPhoto").hidden=false; drawPost();}; im.src=rd.result; }; rd.readAsDataURL(f); });
+$("psClearPhoto").addEventListener("click",()=>{ P.photo=null; $("psPhoto").value=""; $("psClearPhoto").hidden=true; drawPost(); });
+
+const logoImg=new Image(); logoImg.onload=()=>drawPost(); logoImg.src=LOGO;
+let fontsReady=false;
+Promise.all(['600 100px "Bodoni Moda"','italic 500 60px "Bodoni Moda"','600 30px "Manrope"','700 30px "Manrope"','500 30px "Manrope"','30px "Tiro Devanagari Hindi"'].map(f=>document.fonts.load(f,"Aa स").catch(()=>{}))).then(()=>{fontsReady=true; drawPost();});
+
+function wrapLines(ctx,text,maxW){ const words=String(text||"").split(/\s+/).filter(Boolean); const lines=[]; let cur=""; for(const w of words){ const t=cur?cur+" "+w:w; if(ctx.measureText(t).width<=maxW||!cur) cur=t; else { lines.push(cur); cur=w; } } if(cur) lines.push(cur); return lines; }
+function spaced(ctx,px){ try{ ctx.letterSpacing=px+"px"; }catch(e){} }
+function drawPost(){
+  const cv=$("postCanvas"); if(!cv) return; const F=FORMATS[P.format]; const W=F.w,H=F.h; if(cv.width!==W) cv.width=W; if(cv.height!==H) cv.height=H;
+  const ctx=cv.getContext("2d"); const st=P.style;
+  const PAL={
+    porcelain:{bg:"#F8F4F2",ink:"#2A1F27",head:"#400c4d",soft:"rgba(42,31,39,.78)",gold:"#A8636B",frame:"rgba(168,99,107,.45)",ctaInk:"#2A1A20",roundel:"#FFFFFF",glowA:"rgba(240,200,184,.30)",glowB:"rgba(64,12,77,.025)"},
+    midnight:{bg:"#17121A",ink:"#F6EEF0",head:"#F6EEF0",soft:"rgba(246,238,240,.80)",gold:"#E3AE9C",frame:"rgba(227,174,156,.45)",ctaInk:"#2A1A20",roundel:"#FFFFFF",glowA:"rgba(64,12,77,.75)",glowB:"rgba(0,0,0,.35)"},
+    plum:{bg:"#3A0B46",ink:"#F8EFF5",head:"#F8EFF5",soft:"rgba(248,239,245,.80)",gold:"#EDB9A6",frame:"rgba(237,185,166,.5)",ctaInk:"#2A1A20",roundel:"#FFFFFF",glowA:"rgba(150,70,165,.35)",glowB:"rgba(20,0,26,.45)"}};
+  const C=PAL[st]||PAL.porcelain;
+  const roseGrad=(x,y,w)=>{ const g=ctx.createLinearGradient(x,y,x+w,y); g.addColorStop(0,"#F2CDBD"); g.addColorStop(.35,"#D7A090"); g.addColorStop(.7,"#BF7F82"); g.addColorStop(1,"#EBC0AE"); return g; };
+  // ground
+  ctx.fillStyle=C.bg; ctx.fillRect(0,0,W,H);
+  const g=ctx.createRadialGradient(W*0.9,H*0.04,10,W*0.9,H*0.04,W*1.05);
+  g.addColorStop(0,C.glowA); g.addColorStop(1,"rgba(0,0,0,0)"); ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  const g2=ctx.createRadialGradient(W*0.05,H*1.0,10,W*0.05,H*1.0,W*0.8);
+  g2.addColorStop(0,C.glowB); g2.addColorStop(1,"rgba(0,0,0,0)"); ctx.fillStyle=g2; ctx.fillRect(0,0,W,H);
+  // fine double frame
+  ctx.strokeStyle=C.frame; ctx.lineWidth=2; ctx.strokeRect(40,40,W-80,H-80); ctx.lineWidth=1; ctx.strokeRect(50,50,W-100,H-100);
+  const pad=104, inner=W-pad*2; let y=pad;
+  // top row
+  const R=54; ctx.fillStyle=C.roundel; ctx.beginPath(); ctx.arc(pad+R,y+R,R,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle=roseGrad(pad,y,R*2); ctx.lineWidth=3; ctx.beginPath(); ctx.arc(pad+R,y+R,R+7,0,Math.PI*2); ctx.stroke();
+  if(logoImg.complete&&logoImg.naturalWidth){ const lh=72, lw=lh*logoImg.naturalWidth/logoImg.naturalHeight; ctx.drawImage(logoImg,pad+R-lw/2,y+R-lh/2,lw,lh); }
+  ctx.fillStyle=C.gold; ctx.font='700 24px "Manrope", sans-serif'; spaced(ctx,6); ctx.textAlign="right"; ctx.textBaseline="middle";
+  ctx.fillText("S-CUBUS  ·  DWARKA",W-pad,y+R-14); ctx.fillStyle=C.soft; ctx.font='500 22px "Manrope", sans-serif'; spaced(ctx,2); ctx.fillText("@s_cubus_dwarka",W-pad,y+R+20);
+  ctx.textAlign="left"; spaced(ctx,0); y+=R*2+56;
+  // photo arch
+  const footerH=200; const bottomLimit=H-pad-footerH;
+  if(P.photo){ const ph=P.format==="story"?720:P.format==="post"?440:300; const r=Math.min(inner/2,ph*0.55);
+    ctx.save(); ctx.beginPath(); ctx.moveTo(pad,y+ph); ctx.lineTo(pad,y+r); ctx.arcTo(pad,y,pad+r,y,r); ctx.lineTo(pad+inner-r,y); ctx.arcTo(pad+inner,y,pad+inner,y+r,r); ctx.lineTo(pad+inner,y+ph); ctx.closePath(); ctx.clip();
+    const im=P.photo, s=Math.max(inner/im.width,ph/im.height); ctx.drawImage(im,pad+(inner-im.width*s)/2,y+(ph-im.height*s)/2,im.width*s,im.height*s); ctx.restore();
+    ctx.strokeStyle=C.gold; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(pad,y+ph); ctx.lineTo(pad,y+r); ctx.arcTo(pad,y,pad+r,y,r); ctx.lineTo(pad+inner-r,y); ctx.arcTo(pad+inner,y,pad+inner,y+r,r); ctx.lineTo(pad+inner,y+ph); ctx.stroke();
+    y+=ph+48; }
+  // measure text block, shrink headline to fit
+  const avail=bottomLimit-y; let hs=P.format==="square"?(P.photo?64:104):P.format==="story"?132:118; let hl, ebH=44, divH=70, pts=[], ptsH=0, ps=P.format==="story"?40:34;
+  for(let guard=0;guard<40;guard++){
+    ctx.font='600 '+hs+'px "Bodoni Moda", Georgia, serif'; hl=wrapLines(ctx,P.headline,inner);
+    ctx.font='500 '+ps+'px "Manrope", sans-serif'; pts=P.points.map(p=>wrapLines(ctx,p,inner-44)); ptsH=pts.reduce((a,l)=>a+l.length*ps*1.38+18,0);
+    const total=ebH+hl.length*hs*1.06+(P.points.length?divH+ptsH:20);
+    if(total<=avail || hs<=48){ break; } hs-=4; if(hs<70&&ps>28) ps-=1; }
+  // vertical placement: centre in available band for quotes, top-aligned otherwise
+  const totalH=ebH+hl.length*hs*1.06+(P.points.length?divH+ptsH:20); if(P.template==="motivation"&&!P.photo) y+=Math.max(0,(avail-totalH)/2);
+  ctx.textBaseline="alphabetic";
+  ctx.fillStyle=C.gold; ctx.font='700 '+(P.format==="story"?30:26)+'px "Manrope", sans-serif'; spaced(ctx,7); ctx.fillText(String(P.eyebrow||"").toUpperCase(),pad,y+26); spaced(ctx,0); y+=ebH;
+  ctx.fillStyle=C.head; ctx.font='600 '+hs+'px "Bodoni Moda", Georgia, serif';
+  hl.forEach((l,i)=>{ ctx.fillText(l,pad,y+hs*0.92+i*hs*1.06); }); y+=hl.length*hs*1.06;
+  if(P.points.length){
+    y+=28; ctx.strokeStyle=roseGrad(pad,y,110); ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(pad,y+8); ctx.lineTo(pad+110,y+8); ctx.stroke();
+    ctx.fillStyle=C.gold; ctx.save(); ctx.translate(pad+128,y+8); ctx.rotate(Math.PI/4); ctx.fillRect(-6,-6,12,12); ctx.restore(); y+=divH-28;
+    ctx.font='500 '+ps+'px "Manrope", sans-serif';
+    pts.forEach(lines=>{ ctx.fillStyle=C.gold; ctx.save(); ctx.translate(pad+8,y+ps*0.62); ctx.rotate(Math.PI/4); ctx.fillRect(-5,-5,10,10); ctx.restore();
+      ctx.fillStyle=C.soft; lines.forEach((l,i)=>ctx.fillText(l,pad+44,y+ps*0.95+i*ps*1.38)); y+=lines.length*ps*1.38+18; });
+  }
+  // footer: tagline + CTA
+  const fy=H-pad-footerH+40;
+  ctx.strokeStyle=C.frame; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(pad,fy); ctx.lineTo(W-pad,fy); ctx.stroke();
+  ctx.font='700 28px "Manrope", sans-serif'; spaced(ctx,3); const ct=String(P.cta||"").toUpperCase(); const cw=Math.min(inner*0.62,ctx.measureText(ct).width+76); const ch=78, cy=fy+44;
+  if(ct){ ctx.fillStyle=roseGrad(pad,cy,cw); ctx.beginPath(); ctx.roundRect?ctx.roundRect(pad,cy,cw,ch,ch/2):ctx.rect(pad,cy,cw,ch); ctx.fill(); ctx.fillStyle=C.ctaInk; ctx.textBaseline="middle"; ctx.textAlign="center"; ctx.fillText(ct,pad+cw/2,cy+ch/2+1,cw-40); }
+  spaced(ctx,0); ctx.textAlign="right"; ctx.textBaseline="middle"; ctx.fillStyle=C.gold; ctx.font='34px "Tiro Devanagari Hindi", serif';
+  ctx.fillText("समर्पण · सुनिश्चित · सफलता",W-pad,cy+ch/2); ctx.textAlign="left"; ctx.textBaseline="alphabetic";
+}
+async function writePost(){
+  if(!S.sample) return; const b=$("psWrite"); const st=$("psStatus"); b.disabled=true; b.textContent="Writing…"; st.textContent="";
+  const t=TEMPLATES[P.template];
+  const ANGLES=["a small, real moment from a student's day","a parent's point of view","a teacher's honest voice","a quiet milestone","a question students ask themselves at night","a before and after","something only Dwarka families would recognise"];
+  const angle=ANGLES[Math.floor(Math.random()*ANGLES.length)]; S.postHistory=S.postHistory||[];
+  const prompt=CONTEXT+"\n\nWrite copy for one premium, classy Instagram "+(P.format==="story"?"story":"post")+" for @s_cubus_dwarka. Template: "+t.label+". Brief from the institute: "+($("psBrief").value||"(none: use the template's purpose)")+"\nAngle to write from: "+angle+". Make it feel human and specific, not like an advert.\nTone: calm, confident, premium; short words; no exclamation marks; no emoji. Hinglish is fine where it sounds natural. Never use: "+BANNED.join(", ")+".\nDo not reuse any of these earlier headlines: "+(S.postHistory.slice(-20).join(" | ")||"none")+"\nVariation key: "+Math.random().toString(36).slice(2,8)+"\nLimits: eyebrow max 4 words; headline max 9 words; up to 3 points, each max 8 words; button max 4 words.\n"+'Reply with only JSON: {"eyebrow":"","headline":"","points":[""],"cta":"","caption":"2-3 sentence caption ending with 5-7 hashtags"}';
+  try{ const o=await S.sample.json(prompt,{cache:false}); if(o&&o.headline){ P.eyebrow=String(o.eyebrow||""); P.headline=String(o.headline); P.points=(Array.isArray(o.points)?o.points:[]).map(String).filter(Boolean).slice(0,3); P.cta=String(o.cta||""); P.caption=String(o.caption||""); S.postHistory=(S.postHistory||[]).concat(P.headline); syncForm(); drawPost(); st.textContent="Written. Edit any line below and the design updates."; } else st.textContent="The answer came back empty. Try again."; }
+  catch(e){ st.textContent=sampleCopy(e); }
+  b.disabled=false; b.textContent="Write it with AI";
+}
+$("psWrite").addEventListener("click",writePost);
+$("psCopy").addEventListener("click",()=>copyText($("psCaption").textContent));
+$("psDownload").addEventListener("click",()=>{
+  drawPost(); $("postCanvas").toBlob((blob)=>{ if(!blob) return; const u=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=u; a.download="scubus-"+P.template+"-"+P.format+".png"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),2000); toast("Downloaded"); },"image/png");
+});
+function copyText(t){ try{ navigator.clipboard.writeText(t).then(()=>toast("Copied"),()=>toast("Select the text and copy it manually.")); }catch(e){ toast("Select the text and copy it manually."); } }
+
+/* ---------- growth ---------- */
+function renderGrowth(){
+  let a="";
+  if(S.status&&!S.status.instagram) a=alertHtml({text:"Your Instagram Insights appear here once the Instagram keys are added in Render."});
+  else if(S.ownErr) a=alertHtml(errCopy(S.ownErr),"Your account:");
+  $("growthAlert").innerHTML=a;
+  const own=S.own||[];
+  const last=own.length?own[own.length-1]:null; const first=own.length?own[0]:null;
+  const gained=own.reduce((s,r)=>s+(r.gain||0),0); const reach=own.reduce((s,r)=>s+(r.reach||0),0);
+  const fNow=S.ownFollowers!=null?S.ownFollowers:null; const fThen=first&&first.followers!=null?first.followers:null;
+  const rate=(fNow!=null&&fNow>0&&own.length)? gained/(fNow-gained)*100 : null;
+  const k=[["Followers",fNow==null?"—":fmt(fNow),"latest count"],["New followers",own.length?fmt(gained):"—","last 30 days"],["Growth rate",rate==null?"—":pct(rate,1),"30-day follower growth"],["Accounts reached",own.length?fmt(reach):"—","sum of daily reach"]];
+  $("kpis").innerHTML=k.map(x=>'<div class="card kpi"><div class="eyebrow">'+esc(x[0])+'</div><div class="v num">'+esc(x[1])+'</div><div class="note">'+esc(x[2])+'</div></div>').join("");
+  // chart: daily new followers
+  const ch=$("chart");
+  if(!own.length){ ch.innerHTML='<div class="empty" style="padding:8px"><h3>Daily new followers</h3><p class="muted" style="margin:0">A 30-day bar chart of new followers appears here once Instagram is connected.</p></div>'; }
+  else{ const W=900,Hh=260,l=44,b=30,t=16; const max=Math.max(1,...own.map(r=>r.gain||0)); const step=(W-l-10)/own.length; const bw=Math.max(4,step*0.62);
+    const ticks=[0,Math.round(max/2),max];
+    let s='<div class="eyebrow" style="margin-bottom:8px">Daily new followers</div><svg viewBox="0 0 '+W+' '+(Hh+b+t)+'" role="img" aria-label="Daily new followers, last 30 days">';
+    ticks.forEach(v=>{ const yy=t+Hh-(v/max)*Hh; s+='<line x1="'+l+'" x2="'+W+'" y1="'+yy+'" y2="'+yy+'" stroke="var(--line)" stroke-width="1"/><text x="'+(l-8)+'" y="'+(yy+4)+'" text-anchor="end" font-size="12" fill="var(--muted)">'+v+'</text>'; });
+    own.forEach((r,i)=>{ const v=r.gain||0; const hh=(v/max)*Hh; const x=l+i*step+(step-bw)/2; s+='<rect x="'+x.toFixed(1)+'" y="'+(t+Hh-hh).toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+Math.max(0,hh).toFixed(1)+'" rx="2" fill="'+(i===own.length-1?"var(--gold)":"var(--accent)")+'"><title>'+esc(r.date)+': '+v+'</title></rect>';
+      if(i%7===0||i===own.length-1) s+='<text x="'+(x+bw/2).toFixed(1)+'" y="'+(t+Hh+20)+'" text-anchor="middle" font-size="12" fill="var(--muted)">'+esc(r.date.slice(5))+'</text>'; });
+    ch.innerHTML=s+'</svg>'; }
+  // snapshot history
+  const rows=HANDLES.map(u=>{ const list=S.snapshots.filter(x=>x.username===u).sort((a,b)=>a.date<b.date?-1:1); if(!list.length) return '<tr><td>'+esc(NAMES[u])+'</td><td colspan="5" class="muted" style="text-align:left">Not saved yet. Saved automatically each day live data loads.</td></tr>';
+    const a=list[0], z=list[list.length-1]; const d=z.followers-a.followers; const p=a.followers?d/a.followers*100:0;
+    return '<tr><td>'+esc(NAMES[u])+'</td><td>'+esc(a.date)+'</td><td>'+fmt(a.followers)+'</td><td>'+esc(z.date)+'</td><td>'+fmt(z.followers)+'</td><td><span class="'+(d>0?"up":d<0?"down":"flat")+'">'+(d>0?"+":"")+fmt(d)+' ('+pct(p)+')</span></td></tr>'; }).join("");
+  $("historyBody").innerHTML=rows;
+}
+
+/* ---------- status ---------- */
+function setStatus(){
+  const dot=$("statusDot"), tx=$("statusText");
+  if(S.loading){ dot.className="dot"; tx.textContent="Loading live data…"; return; }
+  if(S.accounts&&S.fetchedAt){ dot.className="dot live"; tx.textContent="Live · updated "+S.fetchedAt.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}); return; }
+  dot.className="dot est"; tx.textContent="Showing baseline estimates";
+}
+$("refreshBtn").addEventListener("click",()=>{ loadCompetitors(true); loadOwn(true); loadAutopilot(); });
+$("logoutBtn").addEventListener("click",async()=>{ try{ await fetch("/api/logout",{method:"POST"}); }catch(e){} showLogin(); });
+
+/* ---------- boot ---------- */
+loadLocalHistory(); setTemplate("announcement"); renderSegs(); syncForm(); renderPulse(); renderIdeas(); renderHistoryNote(); renderGrowth(); setStatus(); drawPost();
+try{ const t=localStorage.getItem("gs-tab"); showTab(t&&TABS.includes(t)?t:"autopilot"); }catch(e){ showTab("autopilot"); }
+/* ---------- autopilot ---------- */
+function fmtWhen(iso){ if(!iso) return "Not yet"; const d=new Date(iso); return d.toLocaleString([], {day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}); }
+function list(arr){ return (arr||[]).length?'<ul>'+arr.map(x=>'<li>'+esc(x)+'</li>').join("")+'</ul>':'<p class="muted" style="margin:6px 0 0">Nothing this week.</p>'; }
+function renderReport(r, weeks){
+  const el=$("apReport");
+  if(!r){ el.innerHTML='<div class="card empty"><h3>Your first weekly brief</h3><p class="muted" style="margin:0">It is written automatically on Monday at 8 AM. Press "Write this week\'s brief now" to get one today.</p></div>'; return; }
+  const g=r.growth||{};
+  el.innerHTML='<article class="card report fade">'+
+    '<div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center"><div class="eyebrow">Weekly brief · '+esc(r.week)+'</div>'+
+    ((weeks||[]).length>1?'<select id="weekPick" aria-label="Choose a week" style="width:auto">'+weeks.map(w=>'<option'+(w===r.week?' selected':'')+'>'+esc(w)+'</option>').join("")+'</select>':'')+'</div>'+
+    '<h3>'+esc(r.headline||"")+'</h3><p style="margin:0;max-width:75ch">'+esc(r.summary||"")+'</p>'+
+    '<div class="kpis"><div class="card kpi"><div class="eyebrow">Followers</div><div class="v num">'+fmt(toNum(g.followers))+'</div></div><div class="card kpi"><div class="eyebrow">New, 30 days</div><div class="v num">'+fmt(toNum(g.new_followers_30d))+'</div></div><div class="card kpi"><div class="eyebrow">Growth rate</div><div class="v num">'+(toNum(g.growth_rate_30d_pct)==null?"—":pct(toNum(g.growth_rate_30d_pct),1))+'</div></div></div>'+
+    '<div class="cols"><div><div class="eyebrow">Do this week</div>'+list(r.actions)+'</div><div><div class="eyebrow">Wins</div>'+list(r.wins)+'</div><div><div class="eyebrow">Watch out</div>'+list(r.watch)+'</div></div>'+
+    ((r.competitors||[]).length?'<div><div class="eyebrow">Competitors</div><div class="cols" style="margin-top:8px">'+r.competitors.map(c=>'<div><b>'+esc(c.handle)+'</b><div class="muted">'+esc(c.note)+'</div></div>').join("")+'</div></div>':'')+
+    ((r.plan||[]).length?'<div><div class="eyebrow">7-day plan</div><div class="tablebox"><table class="plan" style="min-width:520px;margin-top:6px"><thead><tr><th>Day</th><th>Format</th><th>Topic</th><th>Note</th></tr></thead><tbody>'+r.plan.map(p=>'<tr><td><b>'+esc(p.day)+'</b></td><td><span class="chip">'+esc(p.format)+'</span></td><td>'+esc(p.topic)+'</td><td class="muted">'+esc(p.note)+'</td></tr>').join("")+'</tbody></table></div></div>':'')+
+    ((r.reels||[]).length?'<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><div class="eyebrow">Four new reels for this week</div><div class="muted">'+r.reels.map(x=>esc(x.title)).join(" · ")+'</div></div><button class="btn btn-line" id="openReels" type="button">Open in Reel lab</button></div>':'')+
+    '</article>';
+  const wp=$("weekPick"); if(wp) wp.addEventListener("change",async()=>{ try{ const rr=await api("/api/report/"+encodeURIComponent(wp.value)); renderReport(rr,weeks); }catch(e){} });
+  const ob=$("openReels"); if(ob) ob.addEventListener("click",()=>{ S.ideas=r.reels; S.ideasExample=false; renderIdeas(); showTab("reels"); });
+}
+async function loadAutopilot(){
+  try{
+    const d=await api("/api/autopilot"); const st=S.status||{};
+    const card=(t,ok,v,n)=>'<div class="card ap-card"><div class="eyebrow">'+esc(t)+'</div><span class="state '+(ok?"ok":"off")+'"><span class="dot"></span>'+esc(v)+'</span><div class="note">'+esc(n)+'</div></div>';
+    $("apCards").innerHTML=
+      card("Instagram",st.instagram,st.instagram?"Connected":"Not connected",st.instagram?"Live numbers for 4 accounts":"Add the Instagram keys in Render")+
+      card("AI writer",st.ai,st.ai?"Connected":"Not connected",st.ai?"Writes briefs, ideas and copy":"Add ANTHROPIC_API_KEY in Render")+
+      card("Daily refresh",!!d.state.lastDaily,d.state.lastDaily?"Last: "+d.state.lastDaily:"Waiting","Runs every day at 9 AM")+
+      card("Weekly brief",!!d.state.lastWeekly,d.state.lastWeekly?"Last: "+d.state.lastWeekly:"Waiting","Runs every Monday at 8 AM");
+    renderReport(d.report,d.reports);
+    $("apLog").innerHTML=(d.state.log||[]).length?d.state.log.map(l=>'<div><span class="num muted">'+esc(fmtWhen(l.at))+'</span><b class="'+(l.ok?"up":"down")+'">'+esc(l.kind)+'</b><span>'+esc(l.msg)+'</span></div>').join(""):'<p class="muted" style="margin:8px 0 0">Nothing has run yet. The first daily refresh runs at 9 AM once Instagram is connected.</p>';
+  }catch(e){ if(e.code!=="auth") $("apStatus").textContent="Couldn't load Autopilot: "+(e.message||e.error||"unknown error"); }
+}
+async function runJob(job,btn,label){
+  btn.disabled=true; const old=btn.textContent; btn.textContent=label; $("apStatus").textContent=job==="weekly"?"Writing the brief from the latest numbers. This takes about a minute.":"Fetching fresh numbers…";
+  try{ await api("/api/autopilot/run",{method:"POST",body:JSON.stringify({job})}); $("apStatus").textContent=job==="weekly"?"This week's brief is ready.":"Numbers refreshed."; if(job==="daily"){ loadCompetitors(); loadOwn(); } await loadAutopilot(); watchHistory(); }
+  catch(e){ $("apStatus").textContent=e.error==="not_configured"?(job==="weekly"?"Add ANTHROPIC_API_KEY in Render first.":"Add the Instagram keys in Render first."):"That didn't work: "+(e.message||e.error||"unknown error"); loadAutopilot(); }
+  btn.disabled=false; btn.textContent=old;
+}
+$("runDaily").addEventListener("click",()=>runJob("daily",$("runDaily"),"Refreshing…"));
+$("runWeekly").addEventListener("click",()=>runJob("weekly",$("runWeekly"),"Writing…"));
+
+/* ---------- login + boot ---------- */
+function showLogin(){ $("login").hidden=false; setTimeout(()=>{ try{$("pw").focus();}catch(e){} },50); }
+$("loginForm").addEventListener("submit",async(ev)=>{ ev.preventDefault(); $("loginErr").textContent="";
+  try{ const r=await fetch("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({password:$("pw").value})}); const j=await r.json().catch(()=>({}));
+    if(!r.ok){ $("loginErr").textContent=j.error||"Couldn't sign in."; return; } $("login").hidden=true; $("pw").value=""; start(); }
+  catch(e){ $("loginErr").textContent="Couldn't reach the server. Try again."; } });
+let started=false;
+async function start(){
+  try{ S.status=await api("/api/status"); }catch(e){ return; }
+  renderPulse(); renderGrowth(); loadAutopilot(); watchHistory(); loadSnapshots();
+  if(S.status.instagram){ loadCompetitors(); loadOwn(); }
+  if(!started){ started=true; setInterval(()=>{ if(document.visibilityState==="visible"&&!S.loading&&S.status&&S.status.instagram) loadCompetitors(); },15*60*1000); }
+}
+(async()=>{ try{ const me=await (await fetch("/api/me")).json(); if(me.authed) start(); else showLogin(); }catch(e){ showLogin(); } })();
+})();
+</script>
+</body>
+</html>
