@@ -11,6 +11,8 @@ const cfg = {
   password: process.env.APP_PASSWORD || "",
   secret: process.env.SESSION_SECRET || crypto.randomBytes(32).toString("hex"),
   anthropicKey: process.env.ANTHROPIC_API_KEY || "",
+  geminiKey: process.env.GEMINI_API_KEY || "",
+  geminiModel: process.env.GEMINI_MODEL || "gemini-flash-latest",
   model: process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5",
   igToken: process.env.IG_ACCESS_TOKEN || "",
   igUserId: process.env.IG_USER_ID || "",
@@ -62,7 +64,7 @@ app.get("/tick", async (req, res) => {
 app.use("/api", (req, res, next) => authed(req) ? next() : res.status(401).json({ error: "Please sign in." }));
 
 app.get("/api/status", (req, res) => res.json({
-  instagram: !!(cfg.igToken && cfg.igUserId), ai: !!cfg.anthropicKey, store: !!(cfg.sbUrl && cfg.sbKey && cfg.storeSecret), cron: !!cfg.tickKey, handles: HANDLES,
+  instagram: !!(cfg.igToken && cfg.igUserId), ai: !!(cfg.anthropicKey || cfg.geminiKey), store: !!(cfg.sbUrl && cfg.sbKey && cfg.storeSecret), cron: !!cfg.tickKey, handles: HANDLES,
 }));
 
 /* ---------- store: Supabase document RPCs (memory fallback) ---------- */
@@ -161,7 +163,20 @@ function parseJson(text) {
   if (a >= 0 && z > a) { try { return JSON.parse(t.slice(a, z + 1)); } catch (e) {} }
   return undefined;
 }
+async function gemini(prompt, maxTokens) {
+  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(cfg.geminiModel)}:generateContent`, {
+    method: "POST", headers: { "content-type": "application/json", "x-goog-api-key": cfg.geminiKey },
+    body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt + "\n\nYour whole reply must be the JSON value only, with no other text." }] }], generationConfig: { temperature: 1, maxOutputTokens: maxTokens || 8000, responseMimeType: "application/json" } }),
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) { const e = new Error((j.error && j.error.message) || "AI error " + r.status); e.code = r.status === 429 ? "rate_limited" : (r.status === 400 || r.status === 403) && /key/i.test(JSON.stringify(j)) ? "bad_key" : "upstream_error"; throw e; }
+  const text = (((j.candidates || [])[0] || {}).content || { parts: [] }).parts.map(p => p.text || "").join("");
+  const data = parseJson(text);
+  if (data === undefined) { const e = new Error("AI reply was not JSON"); e.code = "invalid_json"; throw e; }
+  return data;
+}
 async function claude(prompt, maxTokens) {
+  if (!cfg.anthropicKey && cfg.geminiKey) return gemini(prompt, maxTokens);
   if (!cfg.anthropicKey) { const e = new Error("AI not configured"); e.code = "not_configured"; throw e; }
   const r = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -227,7 +242,7 @@ async function tick(source) {
       catch (e) { await logRun(state, "Daily refresh", false, e.message); }
     }
     const wk = weekKey(now);
-    if (cfg.anthropicKey && now.getUTCDay() === 1 && h >= 8 && state.lastWeekly !== wk) {
+    if ((cfg.anthropicKey || cfg.geminiKey) && now.getUTCDay() === 1 && h >= 8 && state.lastWeekly !== wk) {
       try { await weeklyReport(); state.lastWeekly = wk; await logRun(state, "Weekly brief", true, `Report, 4 reel ideas and a 7-day plan for ${wk}`); out.ran.push("weekly"); }
       catch (e) { await logRun(state, "Weekly brief", false, e.message); }
     }
@@ -258,4 +273,4 @@ app.post("/api/autopilot/run", async (req, res) => {
 /* ---------- static ---------- */
 app.use(express.static(path.join(__dirname, "public"), { maxAge: "1h", index: "index.html" }));
 app.get("/healthz", (req, res) => res.send("ok"));
-app.listen(cfg.port, () => console.log(`Growth Studio on :${cfg.port} — instagram:${!!cfg.igToken} ai:${!!cfg.anthropicKey} store:${useStore()}`));
+app.listen(cfg.port, () => console.log(`Growth Studio on :${cfg.port} — instagram:${!!cfg.igToken} ai:${cfg.anthropicKey ? "claude" : cfg.geminiKey ? "gemini" : "off"} store:${useStore()}`));
